@@ -1,7 +1,17 @@
 #[cfg(test)]
 mod tests {
     use crate::Deezer;
+    use rand::distributions::uniform::SampleRange;
     use rand::Rng;
+
+    fn gen_three_rand_nums<T: SampleRange<u64> + Clone>(range: T) -> [u64; 3] {
+        let mut rng = rand::thread_rng();
+        [
+            rng.gen_range(range.clone()),
+            rng.gen_range(range.clone()),
+            rng.gen_range(range.clone()),
+        ]
+    }
 
     #[test]
     fn test_refresh_token() {
@@ -12,12 +22,7 @@ mod tests {
 
     #[test]
     fn test_gw_track() {
-        let mut rng = rand::thread_rng();
-        let song_ids = [
-            rng.gen_range(250_000..=350_000),
-            rng.gen_range(250_000..=350_000),
-            rng.gen_range(250_000..=350_000),
-        ];
+        let song_ids = gen_three_rand_nums(250_000..=350_000);
         let deezer = Deezer::new();
         let tracks = vec![
             deezer.gw_track(song_ids[0]),
@@ -34,12 +39,7 @@ mod tests {
 
     #[test]
     fn test_gw_song() {
-        let mut rng = rand::thread_rng();
-        let song_ids = [
-            rng.gen_range(250_000..=350_000),
-            rng.gen_range(250_000..=350_000),
-            rng.gen_range(250_000..=350_000),
-        ];
+        let song_ids = gen_three_rand_nums(250_000..=350_000);
         let deezer = Deezer::new();
         let songs = vec![
             deezer.gw_song(song_ids[0]),
@@ -56,12 +56,7 @@ mod tests {
 
     #[test]
     fn test_gw_songs() {
-        let mut rng = rand::thread_rng();
-        let song_ids = vec![
-            rng.gen_range(250_000..=350_000),
-            rng.gen_range(250_000..=350_000),
-            rng.gen_range(250_000..=350_000),
-        ];
+        let song_ids = gen_three_rand_nums(250_000..=350_000).to_vec();
         let deezer = Deezer::new();
         let song_list = deezer.gw_songs(&song_ids);
         if let Err(error) = &song_list {
@@ -72,24 +67,24 @@ mod tests {
 
     #[test]
     fn test_gw_songs_by_album() {
-        let mut rng = rand::thread_rng();
-        let album_id = rng.gen_range(1..=100_000) as u64;
+        let album_ids = gen_three_rand_nums(1..=100_000);
         let deezer = Deezer::new();
-        let song_list = deezer.gw_songs_by_album(album_id);
-        if let Err(error) = &song_list {
-            println!("Error for {:?}: {:?}", album_id, error);
+        let song_list = vec![
+            deezer.gw_songs_by_album(album_ids[0]),
+            deezer.gw_songs_by_album(album_ids[1]),
+            deezer.gw_songs_by_album(album_ids[2]),
+        ];
+        for (index, result) in song_list.iter().enumerate() {
+            if let Err(error) = result {
+                println!("Error for {:?}: {:?} ", album_ids[index], error);
+            }
         }
-        assert_eq!(song_list.is_ok(), true);
+        assert_eq!(song_list.iter().all(Result::is_ok), true);
     }
 
     #[test]
     fn test_gw_album() {
-        let mut rng = rand::thread_rng();
-        let album_ids = [
-            rng.gen_range(1..=100_000),
-            rng.gen_range(1..=100_000),
-            rng.gen_range(1..=100_000),
-        ];
+        let album_ids = gen_three_rand_nums(1..=100_000);
         let deezer = Deezer::new();
         let albums = vec![
             deezer.gw_album(album_ids[0]),
@@ -106,12 +101,7 @@ mod tests {
 
     #[test]
     fn test_gw_lyrics() {
-        let mut rng = rand::thread_rng();
-        let song_ids = [
-            rng.gen_range(250_000..=350_000),
-            rng.gen_range(250_000..=350_000),
-            rng.gen_range(250_000..=350_000),
-        ];
+        let song_ids = gen_three_rand_nums(250_000..=350_000);
         let deezer = Deezer::new();
         let lyrics = vec![
             deezer.gw_lyrics(song_ids[0]),
@@ -152,12 +142,7 @@ mod tests {
 
     #[test]
     fn test_track() {
-        let mut rng = rand::thread_rng();
-        let song_ids = [
-            rng.gen_range(250_000..=350_000),
-            rng.gen_range(250_000..=350_000),
-            rng.gen_range(250_000..=350_000),
-        ];
+        let song_ids = gen_three_rand_nums(250_000..=350_000);
         let deezer = Deezer::new();
         let tracks = vec![
             deezer.track(song_ids[0]),
@@ -191,12 +176,7 @@ mod tests {
 
     #[test]
     fn test_album() {
-        let mut rng = rand::thread_rng();
-        let album_ids = [
-            rng.gen_range(1..=100_000),
-            rng.gen_range(1..=100_000),
-            rng.gen_range(1..=100_000),
-        ];
+        let album_ids = gen_three_rand_nums(1..=100_000);
         let deezer = Deezer::new();
         let albums = vec![
             deezer.album(album_ids[0]),
@@ -230,12 +210,7 @@ mod tests {
 
     #[test]
     fn test_album_tracks() {
-        let mut rng = rand::thread_rng();
-        let album_ids = [
-            rng.gen_range(1..=100_000),
-            rng.gen_range(1..=100_000),
-            rng.gen_range(1..=100_000),
-        ];
+        let album_ids = gen_three_rand_nums(1..=100_000);
         let deezer = Deezer::new();
         let tracks = vec![
             deezer.album_tracks(album_ids[0]),
@@ -252,12 +227,7 @@ mod tests {
 
     #[test]
     fn test_artist() {
-        let mut rng = rand::thread_rng();
-        let artist_ids = [
-            rng.gen_range(1..=50_000),
-            rng.gen_range(1..=50_000),
-            rng.gen_range(1..=50_000),
-        ];
+        let artist_ids = gen_three_rand_nums(1..=50_000);
         let deezer = Deezer::new();
         let artists = vec![
             deezer.artist(artist_ids[0]),
@@ -274,12 +244,7 @@ mod tests {
 
     #[test]
     fn test_artist_albums() {
-        let mut rng = rand::thread_rng();
-        let artist_ids = [
-            rng.gen_range(1..=50_000),
-            rng.gen_range(1..=50_000),
-            rng.gen_range(1..=50_000),
-        ];
+        let artist_ids = gen_three_rand_nums(1..=50_000);
         let deezer = Deezer::new();
         let albums = vec![
             deezer.artist_albums(artist_ids[0]),
@@ -296,12 +261,7 @@ mod tests {
 
     #[test]
     fn test_artist_top_tracks() {
-        let mut rng = rand::thread_rng();
-        let artist_ids = [
-            rng.gen_range(1..=50_000),
-            rng.gen_range(1..=50_000),
-            rng.gen_range(1..=50_000),
-        ];
+        let artist_ids = gen_three_rand_nums(1..=50_000);
         let deezer = Deezer::new();
         let tracks = vec![
             deezer.artist_top_tracks(artist_ids[0]),
@@ -318,12 +278,7 @@ mod tests {
 
     #[test]
     fn test_artist_related_artists() {
-        let mut rng = rand::thread_rng();
-        let artist_ids = [
-            rng.gen_range(1..=50_000),
-            rng.gen_range(1..=50_000),
-            rng.gen_range(1..=50_000),
-        ];
+        let artist_ids = gen_three_rand_nums(1..=50_000);
         let deezer = Deezer::new();
         let artists = vec![
             deezer.artist_related_artists(artist_ids[0]),
