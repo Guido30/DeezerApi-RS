@@ -1,3 +1,4 @@
+use super::gw_shared::ExplicitContent;
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
@@ -5,7 +6,7 @@ use serde::Deserialize;
 pub struct Album {
     pub alb_id: String,
     pub alb_picture: String,
-    pub explicit_album_content: ExplicitAlbumContent,
+    pub explicit_album_content: ExplicitContent,
     pub alb_title: String,
     pub art_id: String,
     pub art_name: String,
@@ -22,11 +23,4 @@ pub struct Album {
     pub rank_art: String,
     pub status: String,
     pub __type__: String,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "UPPERCASE")]
-pub struct ExplicitAlbumContent {
-    pub explicit_lyrics_status: i32,
-    pub explicit_cover_status: i32,
 }
