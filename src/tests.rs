@@ -210,4 +210,131 @@ mod tests {
         }
         assert_eq!(albums.iter().all(Result::is_ok), true);
     }
+
+    #[test]
+    fn test_album_by_upc() {
+        let upcs = [3700368446423, 634479384776, 707541948593];
+        let deezer = Deezer::new();
+        let albums = vec![
+            deezer.album_by_upc(upcs[0]),
+            deezer.album_by_upc(upcs[1]),
+            deezer.album_by_upc(upcs[2]),
+        ];
+        for (index, result) in albums.iter().enumerate() {
+            if let Err(error) = result {
+                println!("Error for {:?}: {:?} ", upcs[index], error);
+            }
+        }
+        assert_eq!(albums.iter().all(Result::is_ok), true);
+    }
+
+    #[test]
+    fn test_album_tracks() {
+        let mut rng = rand::thread_rng();
+        let album_ids = [
+            rng.gen_range(1..=100_000),
+            rng.gen_range(1..=100_000),
+            rng.gen_range(1..=100_000),
+        ];
+        let deezer = Deezer::new();
+        let tracks = vec![
+            deezer.album_tracks(album_ids[0]),
+            deezer.album_tracks(album_ids[1]),
+            deezer.album_tracks(album_ids[2]),
+        ];
+        for (index, result) in tracks.iter().enumerate() {
+            if let Err(error) = result {
+                println!("Error for {:?}: {:?} ", album_ids[index], error);
+            }
+        }
+        assert_eq!(tracks.iter().all(Result::is_ok), true);
+    }
+
+    #[test]
+    fn test_artist() {
+        let mut rng = rand::thread_rng();
+        let artist_ids = [
+            rng.gen_range(1..=50_000),
+            rng.gen_range(1..=50_000),
+            rng.gen_range(1..=50_000),
+        ];
+        let deezer = Deezer::new();
+        let artists = vec![
+            deezer.artist(artist_ids[0]),
+            deezer.artist(artist_ids[1]),
+            deezer.artist(artist_ids[2]),
+        ];
+        for (index, result) in artists.iter().enumerate() {
+            if let Err(error) = result {
+                println!("Error for {:?}: {:?} ", artist_ids[index], error);
+            }
+        }
+        assert_eq!(artists.iter().all(Result::is_ok), true);
+    }
+
+    #[test]
+    fn test_artist_albums() {
+        let mut rng = rand::thread_rng();
+        let artist_ids = [
+            rng.gen_range(1..=50_000),
+            rng.gen_range(1..=50_000),
+            rng.gen_range(1..=50_000),
+        ];
+        let deezer = Deezer::new();
+        let albums = vec![
+            deezer.artist_albums(artist_ids[0]),
+            deezer.artist_albums(artist_ids[1]),
+            deezer.artist_albums(artist_ids[2]),
+        ];
+        for (index, result) in albums.iter().enumerate() {
+            if let Err(error) = result {
+                println!("Error for {:?}: {:?} ", artist_ids[index], error);
+            }
+        }
+        assert_eq!(albums.iter().all(Result::is_ok), true);
+    }
+
+    #[test]
+    fn test_artist_top_tracks() {
+        let mut rng = rand::thread_rng();
+        let artist_ids = [
+            rng.gen_range(1..=50_000),
+            rng.gen_range(1..=50_000),
+            rng.gen_range(1..=50_000),
+        ];
+        let deezer = Deezer::new();
+        let tracks = vec![
+            deezer.artist_top_tracks(artist_ids[0]),
+            deezer.artist_top_tracks(artist_ids[1]),
+            deezer.artist_top_tracks(artist_ids[2]),
+        ];
+        for (index, result) in tracks.iter().enumerate() {
+            if let Err(error) = result {
+                println!("Error for {:?}: {:?} ", artist_ids[index], error);
+            }
+        }
+        assert_eq!(tracks.iter().all(Result::is_ok), true);
+    }
+
+    #[test]
+    fn test_artist_related_artists() {
+        let mut rng = rand::thread_rng();
+        let artist_ids = [
+            rng.gen_range(1..=50_000),
+            rng.gen_range(1..=50_000),
+            rng.gen_range(1..=50_000),
+        ];
+        let deezer = Deezer::new();
+        let artists = vec![
+            deezer.artist_related_artists(artist_ids[0]),
+            deezer.artist_related_artists(artist_ids[1]),
+            deezer.artist_related_artists(artist_ids[2]),
+        ];
+        for (index, result) in artists.iter().enumerate() {
+            if let Err(error) = result {
+                println!("Error for {:?}: {:?} ", artist_ids[index], error);
+            }
+        }
+        assert_eq!(artists.iter().all(Result::is_ok), true);
+    }
 }

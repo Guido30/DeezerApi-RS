@@ -105,6 +105,29 @@ impl Deezer {
         }
     }
 
+    /*
+    This method should be used for future implementations over those endpoints where a list of objects is returned,
+    and where it is possible to send (index, limit) parameters, those future implementations should take care
+    of the returned payload and appropriately manage retrieving the next set of objects based on the total. The ideal
+    solution would be to implement some custom methods on those objects to manually or automatically fetch the next set of item
+    based on the url contained in the json next key
+    */
+    #[allow(dead_code)]
+    fn method_call_params(&self, path: &str, params: HashMap<&str, String>) -> Result<Response, DeezerError> {
+        let url = match Url::parse(API_URL) {
+            Ok(base_url) => match base_url.join(path) {
+                Ok(url) => url,
+                Err(error) => return Err(DeezerError::ParseError(error)),
+            },
+            Err(error) => return Err(DeezerError::ParseError(error)),
+        };
+        let response = self.client.get(url).form(&params).send();
+        match response {
+            Ok(r) => Ok(r),
+            Err(error) => Err(DeezerError::RequestError(error)),
+        }
+    }
+
     fn gw_method_call(&self, method: &str) -> Result<Response, RequestError> {
         if self.token.borrow().to_string() == "null" && !(method == "deezer.getUserData") {
             self.refresh_token();
@@ -245,22 +268,20 @@ impl Deezer {
         }
     }
 
-    /*
     // TODO payload is often huge, models need to be fixed to match returned json, and takes a lot of time
-    pub fn gw_artist(&self, artist_id: u64, lang: &str) -> Result<models::gw_artist::ArtistResults, DeezerError> {
-        let params: HashMap<&str, String> = [("art_id", artist_id.to_string()), ("lang", lang.to_string())].into();
-        let response = match self.gw_method_call_params("deezer.pageArtist", params) {
-            Ok(r) => r,
-            Err(err) => return Err(DeezerError::RequestError(err)),
-        };
-        let value: Value = parse_response(response)?;
-        let track = match serde_json::from_value(value["results"].clone()) {
-            Ok(v) => v,
-            Err(err) => return Err(DeezerError::JsonError(err)),
-        };
-        Ok(track)
-    }
-    */
+    // pub fn gw_artist(&self, artist_id: u64, lang: &str) -> Result<models::gw_artist::ArtistResults, DeezerError> {
+    //     let params: HashMap<&str, String> = [("art_id", artist_id.to_string()), ("lang", lang.to_string())].into();
+    //     let response = match self.gw_method_call_params("deezer.pageArtist", params) {
+    //         Ok(r) => r,
+    //         Err(err) => return Err(DeezerError::RequestError(err)),
+    //     };
+    //     let value: Value = parse_response(response)?;
+    //     let track = match serde_json::from_value(value["results"].clone()) {
+    //         Ok(v) => v,
+    //         Err(err) => return Err(DeezerError::JsonError(err)),
+    //     };
+    //     Ok(track)
+    // }
 
     pub fn track(&self, song_id: u64) -> Result<models::track::Track, DeezerError> {
         let path: String = format!("track/{}", song_id);
@@ -287,6 +308,66 @@ impl Deezer {
         let response: Response = self.method_call(path.as_str())?;
         let value: Value = parse_response_to_value(response)?;
         match serde_json::from_value(value) {
+            Ok(v) => Ok(v),
+            Err(err) => return Err(DeezerError::JsonError(err)),
+        }
+    }
+
+    pub fn album_by_upc(&self, upc: u64) -> Result<models::album::Album, DeezerError> {
+        let path: String = format!("album/upc:{}", upc);
+        let response: Response = self.method_call(path.as_str())?;
+        let value: Value = parse_response_to_value(response)?;
+        match serde_json::from_value(value) {
+            Ok(v) => Ok(v),
+            Err(err) => return Err(DeezerError::JsonError(err)),
+        }
+    }
+
+    pub fn album_tracks(&self, album_id: u64) -> Result<Vec<models::album::AlbumTrack>, DeezerError> {
+        let path: String = format!("album/{}/tracks", album_id);
+        let response: Response = self.method_call(path.as_str())?;
+        let value: Value = parse_response_to_value(response)?;
+        match serde_json::from_value(value["data"].clone()) {
+            Ok(v) => Ok(v),
+            Err(err) => return Err(DeezerError::JsonError(err)),
+        }
+    }
+
+    pub fn artist(&self, artist_id: u64) -> Result<models::artist::Artist, DeezerError> {
+        let path: String = format!("artist/{}", artist_id);
+        let response: Response = self.method_call(path.as_str())?;
+        let value: Value = parse_response_to_value(response)?;
+        match serde_json::from_value(value) {
+            Ok(v) => Ok(v),
+            Err(err) => return Err(DeezerError::JsonError(err)),
+        }
+    }
+
+    pub fn artist_albums(&self, artist_id: u64) -> Result<Vec<models::artist::Album>, DeezerError> {
+        let path: String = format!("artist/{}/albums", artist_id);
+        let response: Response = self.method_call(path.as_str())?;
+        let value: Value = parse_response_to_value(response)?;
+        match serde_json::from_value(value["data"].clone()) {
+            Ok(v) => Ok(v),
+            Err(err) => return Err(DeezerError::JsonError(err)),
+        }
+    }
+
+    pub fn artist_top_tracks(&self, artist_id: u64) -> Result<Vec<models::artist::Track>, DeezerError> {
+        let path: String = format!("artist/{}/top", artist_id);
+        let response: Response = self.method_call(path.as_str())?;
+        let value: Value = parse_response_to_value(response)?;
+        match serde_json::from_value(value["data"].clone()) {
+            Ok(v) => Ok(v),
+            Err(err) => return Err(DeezerError::JsonError(err)),
+        }
+    }
+
+    pub fn artist_related_artists(&self, artist_id: u64) -> Result<Vec<models::artist::RelatedArtist>, DeezerError> {
+        let path: String = format!("artist/{}/related", artist_id);
+        let response: Response = self.method_call(path.as_str())?;
+        let value: Value = parse_response_to_value(response)?;
+        match serde_json::from_value(value["data"].clone()) {
             Ok(v) => Ok(v),
             Err(err) => return Err(DeezerError::JsonError(err)),
         }

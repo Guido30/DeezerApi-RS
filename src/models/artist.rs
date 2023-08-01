@@ -2,12 +2,27 @@ use super::shared::Contributor;
 use serde::Deserialize;
 
 #[derive(Debug, Clone, Deserialize)]
-pub struct Album {
+pub struct Artist {
     pub id: u64,
-    pub title: String,
-    pub upc: String,
+    pub name: String,
     pub link: String,
     pub share: String,
+    pub picture: String,
+    pub picture_small: String,
+    pub picture_medium: String,
+    pub picture_big: String,
+    pub picture_xl: String,
+    pub radio: bool,
+    pub tracklist: String,
+    #[serde(rename = "type")]
+    pub type_field: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct Album {
+    pub id: i64,
+    pub title: String,
+    pub link: String,
     pub cover: String,
     pub cover_small: String,
     pub cover_medium: String,
@@ -15,56 +30,13 @@ pub struct Album {
     pub cover_xl: String,
     pub md5_image: String,
     pub genre_id: i64,
-    pub genres: GenresData,
-    pub label: String,
-    pub nb_tracks: u64,
-    pub duration: u64,
-    pub fans: u64,
+    pub fans: i64,
     pub release_date: String,
     pub record_type: String,
-    pub available: bool,
     pub tracklist: String,
     pub explicit_lyrics: bool,
-    pub explicit_content_lyrics: u8,
-    pub explicit_content_cover: u8,
-    pub contributors: Vec<Contributor>,
-    pub artist: Artist,
     #[serde(rename = "type")]
     pub type_field: String,
-    pub tracks: TracksData,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-pub struct GenresData {
-    pub data: Vec<Genre>,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-pub struct Genre {
-    pub id: u64,
-    pub name: String,
-    pub picture: String,
-    #[serde(rename = "type")]
-    pub type_field: String,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-pub struct Artist {
-    pub id: u64,
-    pub name: String,
-    pub picture: String,
-    pub picture_small: String,
-    pub picture_medium: String,
-    pub picture_big: String,
-    pub picture_xl: String,
-    pub tracklist: String,
-    #[serde(rename = "type")]
-    pub type_field: String,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-pub struct TracksData {
-    pub data: Vec<Track>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -73,7 +45,7 @@ pub struct Track {
     pub readable: bool,
     pub title: String,
     pub title_short: String,
-    pub title_version: String,
+    pub title_version: Option<String>,
     pub link: String,
     pub duration: u64,
     pub rank: u64,
@@ -81,6 +53,7 @@ pub struct Track {
     pub explicit_content_lyrics: u8,
     pub explicit_content_cover: u8,
     pub preview: String,
+    pub contributors: Vec<Contributor>,
     pub md5_image: String,
     pub artist: TrackArtist,
     pub album: TrackAlbum,
@@ -113,32 +86,18 @@ pub struct TrackArtist {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-pub struct AlbumTrack {
-    pub id: u64,
-    pub readable: bool,
-    pub title: String,
-    pub title_short: String,
-    pub title_version: String,
-    pub isrc: String,
-    pub link: String,
-    pub duration: u64,
-    pub track_position: u64,
-    pub disk_number: u64,
-    pub rank: u64,
-    pub explicit_lyrics: bool,
-    pub explicit_content_lyrics: u8,
-    pub explicit_content_cover: u8,
-    pub preview: String,
-    pub md5_image: String,
-    pub artist: AlbumTrackArtist,
-    #[serde(rename = "type")]
-    pub type_field: String,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-pub struct AlbumTrackArtist {
+pub struct RelatedArtist {
     pub id: u64,
     pub name: String,
+    pub link: String,
+    pub picture: String,
+    pub picture_small: String,
+    pub picture_medium: String,
+    pub picture_big: String,
+    pub picture_xl: String,
+    pub nb_album: u64,
+    pub nb_fan: u64,
+    pub radio: bool,
     pub tracklist: String,
     #[serde(rename = "type")]
     pub type_field: String,
