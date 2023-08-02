@@ -1,295 +1,74 @@
-#[cfg(test)]
-mod tests {
-    use crate::Deezer;
-    use rand::distributions::uniform::SampleRange;
-    use rand::Rng;
+use crate::{Deezer, DeezerError};
+use std::fmt::Debug;
 
-    fn gen_three_rand_nums<T: SampleRange<u64> + Clone>(range: T) -> [u64; 3] {
-        let mut rng = rand::thread_rng();
-        [
-            rng.gen_range(range.clone()),
-            rng.gen_range(range.clone()),
-            rng.gen_range(range.clone()),
-        ]
-    }
-
-    #[test]
-    fn test_refresh_token() {
-        let deezer = Deezer::new();
-        let token = deezer.refresh_token();
-        assert_ne!(token, String::from("null"));
-    }
-
-    #[test]
-    fn test_gw_track() {
-        let song_ids = gen_three_rand_nums(250_000..=350_000);
-        let deezer = Deezer::new();
-        let tracks = vec![
-            deezer.gw_track(song_ids[0]),
-            deezer.gw_track(song_ids[1]),
-            deezer.gw_track(song_ids[2]),
-        ];
-        for (index, result) in tracks.iter().enumerate() {
-            if let Err(error) = result {
-                println!("Error for {:?}: {:?} ", song_ids[index], error);
-            }
+pub fn print_errors_for_items<I: Debug, T: Debug>(items: &[I; 3], results: &Vec<Result<T, DeezerError>>) {
+    for (index, result) in results.iter().enumerate() {
+        if let Err(error) = result {
+            println!("Error for {:?}: {:?}", items[index], error);
         }
-        assert_eq!(tracks.iter().all(Result::is_ok), true);
     }
+}
 
-    #[test]
-    fn test_gw_song() {
-        let song_ids = gen_three_rand_nums(250_000..=350_000);
-        let deezer = Deezer::new();
-        let songs = vec![
-            deezer.gw_song(song_ids[0]),
-            deezer.gw_song(song_ids[1]),
-            deezer.gw_song(song_ids[2]),
-        ];
-        for (index, result) in songs.iter().enumerate() {
-            if let Err(error) = result {
-                println!("Error for {:?}: {:?} ", song_ids[index], error);
-            }
-        }
-        assert_eq!(songs.iter().all(Result::is_ok), true);
-    }
+#[test]
+fn refresh_token() {
+    let deezer = Deezer::new();
+    let token = deezer.refresh_token();
+    assert_ne!(token, String::from("null"));
+}
 
-    #[test]
-    fn test_gw_songs() {
-        let song_ids = gen_three_rand_nums(250_000..=350_000).to_vec();
-        let deezer = Deezer::new();
-        let song_list = deezer.gw_songs(&song_ids);
-        if let Err(error) = &song_list {
-            println!("Error for {:?}: {:?}", song_ids, error);
-        }
-        assert_eq!(song_list.is_ok(), true);
-    }
+#[test]
+fn test_track_by_isrc() {
+    let isrcs = ["TCAFP2196109", "GBUM71507634", "GBAYE0200771"];
+    let deezer = Deezer::new();
+    let tracks = vec![
+        deezer.track_by_isrc(isrcs[0]),
+        deezer.track_by_isrc(isrcs[1]),
+        deezer.track_by_isrc(isrcs[2]),
+    ];
+    print_errors_for_items(&isrcs, &tracks);
+    assert_eq!(tracks.iter().all(Result::is_ok), true);
+}
 
-    #[test]
-    fn test_gw_songs_by_album() {
-        let album_ids = gen_three_rand_nums(1..=100_000);
-        let deezer = Deezer::new();
-        let song_list = vec![
-            deezer.gw_songs_by_album(album_ids[0]),
-            deezer.gw_songs_by_album(album_ids[1]),
-            deezer.gw_songs_by_album(album_ids[2]),
-        ];
-        for (index, result) in song_list.iter().enumerate() {
-            if let Err(error) = result {
-                println!("Error for {:?}: {:?} ", album_ids[index], error);
-            }
-        }
-        assert_eq!(song_list.iter().all(Result::is_ok), true);
-    }
+#[test]
+fn test_album_by_upc() {
+    let upcs = [3700368446423, 634479384776, 707541948593];
+    let deezer = Deezer::new();
+    let albums = vec![
+        deezer.album_by_upc(upcs[0]),
+        deezer.album_by_upc(upcs[1]),
+        deezer.album_by_upc(upcs[2]),
+    ];
+    print_errors_for_items(&upcs, &albums);
+    assert_eq!(albums.iter().all(Result::is_ok), true);
+}
 
-    #[test]
-    fn test_gw_album() {
-        let album_ids = gen_three_rand_nums(1..=100_000);
-        let deezer = Deezer::new();
-        let albums = vec![
-            deezer.gw_album(album_ids[0]),
-            deezer.gw_album(album_ids[1]),
-            deezer.gw_album(album_ids[2]),
-        ];
-        for (index, result) in albums.iter().enumerate() {
-            if let Err(error) = result {
-                println!("Error for {:?}: {:?} ", album_ids[index], error);
-            }
-        }
-        assert_eq!(albums.iter().all(Result::is_ok), true);
+#[test]
+fn test_editorial() {
+    let deezer = Deezer::new();
+    let editorial = deezer.editorial();
+    if let Err(ref error) = editorial {
+        println!("Error {:?} ", error);
     }
+    assert_eq!(editorial.is_ok(), true);
+}
 
-    #[test]
-    fn test_gw_lyrics() {
-        let song_ids = gen_three_rand_nums(250_000..=350_000);
-        let deezer = Deezer::new();
-        let lyrics = vec![
-            deezer.gw_lyrics(song_ids[0]),
-            deezer.gw_lyrics(song_ids[1]),
-            deezer.gw_lyrics(song_ids[2]),
-        ];
-        for (index, result) in lyrics.iter().enumerate() {
-            if let Err(error) = result {
-                println!("Error for {:?}: {:?} ", song_ids[index], error);
-            }
-        }
-        assert_eq!(lyrics.iter().all(Result::is_ok), true);
-    }
+#[test]
+fn test_search() {
+    let queries = ["Hans Zimmer", "OneRepublic", "Eric Prydz"];
+    let deezer = Deezer::new();
+    let searches = vec![
+        deezer.search(queries[0], false),
+        deezer.search(queries[1], false),
+        deezer.search(queries[2], false),
+    ];
+    print_errors_for_items(&queries, &searches);
+    assert_eq!(searches.iter().all(Result::is_ok), true);
+}
 
-    /*
-    #[test]
-    fn test_gw_artist() {
-        let mut rng = rand::thread_rng();
-        let artist_ids = [
-            rng.gen_range(1..=1_500),
-            rng.gen_range(1..=1_500),
-            rng.gen_range(1..=1_500),
-        ];
-        let deezer = Deezer::new();
-        let artists = vec![
-            deezer.gw_artist(artist_ids[0], "en"),
-            deezer.gw_artist(artist_ids[1], "en"),
-            deezer.gw_artist(artist_ids[2], "en"),
-        ];
-        for (index, result) in artists.iter().enumerate() {
-            if let Err(error) = result {
-                println!("Error for {:?}: {:?} ", artist_ids[index], error);
-            }
-        }
-        assert_eq!(artists.iter().all(Result::is_ok), true);
-    }
-    */
-
-    #[test]
-    fn test_track() {
-        let song_ids = gen_three_rand_nums(250_000..=350_000);
-        let deezer = Deezer::new();
-        let tracks = vec![
-            deezer.track(song_ids[0]),
-            deezer.track(song_ids[1]),
-            deezer.track(song_ids[2]),
-        ];
-        for (index, result) in tracks.iter().enumerate() {
-            if let Err(error) = result {
-                println!("Error for {:?}: {:?} ", song_ids[index], error);
-            }
-        }
-        assert_eq!(tracks.iter().all(Result::is_ok), true);
-    }
-
-    #[test]
-    fn test_track_by_isrc() {
-        let isrcs = ["TCAFP2196109", "GBUM71507634", "GBAYE0200771"];
-        let deezer = Deezer::new();
-        let tracks = vec![
-            deezer.track_by_isrc(isrcs[0]),
-            deezer.track_by_isrc(isrcs[1]),
-            deezer.track_by_isrc(isrcs[2]),
-        ];
-        for (index, result) in tracks.iter().enumerate() {
-            if let Err(error) = result {
-                println!("Error for {:?}: {:?} ", isrcs[index], error);
-            }
-        }
-        assert_eq!(tracks.iter().all(Result::is_ok), true);
-    }
-
-    #[test]
-    fn test_album() {
-        let album_ids = gen_three_rand_nums(1..=100_000);
-        let deezer = Deezer::new();
-        let albums = vec![
-            deezer.album(album_ids[0]),
-            deezer.album(album_ids[1]),
-            deezer.album(album_ids[2]),
-        ];
-        for (index, result) in albums.iter().enumerate() {
-            if let Err(error) = result {
-                println!("Error for {:?}: {:?} ", album_ids[index], error);
-            }
-        }
-        assert_eq!(albums.iter().all(Result::is_ok), true);
-    }
-
-    #[test]
-    fn test_album_by_upc() {
-        let upcs = [3700368446423, 634479384776, 707541948593];
-        let deezer = Deezer::new();
-        let albums = vec![
-            deezer.album_by_upc(upcs[0]),
-            deezer.album_by_upc(upcs[1]),
-            deezer.album_by_upc(upcs[2]),
-        ];
-        for (index, result) in albums.iter().enumerate() {
-            if let Err(error) = result {
-                println!("Error for {:?}: {:?} ", upcs[index], error);
-            }
-        }
-        assert_eq!(albums.iter().all(Result::is_ok), true);
-    }
-
-    #[test]
-    fn test_album_tracks() {
-        let album_ids = gen_three_rand_nums(1..=100_000);
-        let deezer = Deezer::new();
-        let tracks = vec![
-            deezer.album_tracks(album_ids[0]),
-            deezer.album_tracks(album_ids[1]),
-            deezer.album_tracks(album_ids[2]),
-        ];
-        for (index, result) in tracks.iter().enumerate() {
-            if let Err(error) = result {
-                println!("Error for {:?}: {:?} ", album_ids[index], error);
-            }
-        }
-        assert_eq!(tracks.iter().all(Result::is_ok), true);
-    }
-
-    #[test]
-    fn test_artist() {
-        let artist_ids = gen_three_rand_nums(1..=50_000);
-        let deezer = Deezer::new();
-        let artists = vec![
-            deezer.artist(artist_ids[0]),
-            deezer.artist(artist_ids[1]),
-            deezer.artist(artist_ids[2]),
-        ];
-        for (index, result) in artists.iter().enumerate() {
-            if let Err(error) = result {
-                println!("Error for {:?}: {:?} ", artist_ids[index], error);
-            }
-        }
-        assert_eq!(artists.iter().all(Result::is_ok), true);
-    }
-
-    #[test]
-    fn test_artist_albums() {
-        let artist_ids = gen_three_rand_nums(1..=50_000);
-        let deezer = Deezer::new();
-        let albums = vec![
-            deezer.artist_albums(artist_ids[0]),
-            deezer.artist_albums(artist_ids[1]),
-            deezer.artist_albums(artist_ids[2]),
-        ];
-        for (index, result) in albums.iter().enumerate() {
-            if let Err(error) = result {
-                println!("Error for {:?}: {:?} ", artist_ids[index], error);
-            }
-        }
-        assert_eq!(albums.iter().all(Result::is_ok), true);
-    }
-
-    #[test]
-    fn test_artist_top_tracks() {
-        let artist_ids = gen_three_rand_nums(1..=50_000);
-        let deezer = Deezer::new();
-        let tracks = vec![
-            deezer.artist_top_tracks(artist_ids[0]),
-            deezer.artist_top_tracks(artist_ids[1]),
-            deezer.artist_top_tracks(artist_ids[2]),
-        ];
-        for (index, result) in tracks.iter().enumerate() {
-            if let Err(error) = result {
-                println!("Error for {:?}: {:?} ", artist_ids[index], error);
-            }
-        }
-        assert_eq!(tracks.iter().all(Result::is_ok), true);
-    }
-
-    #[test]
-    fn test_artist_related_artists() {
-        let artist_ids = gen_three_rand_nums(1..=50_000);
-        let deezer = Deezer::new();
-        let artists = vec![
-            deezer.artist_related_artists(artist_ids[0]),
-            deezer.artist_related_artists(artist_ids[1]),
-            deezer.artist_related_artists(artist_ids[2]),
-        ];
-        for (index, result) in artists.iter().enumerate() {
-            if let Err(error) = result {
-                println!("Error for {:?}: {:?} ", artist_ids[index], error);
-            }
-        }
-        assert_eq!(artists.iter().all(Result::is_ok), true);
-    }
+#[test]
+fn temporary() {
+    let deezer = Deezer::new();
+    let payload = deezer.search("OneRepublic", false).unwrap();
+    println!("{:?}", payload.len());
+    assert_eq!(false, true);
 }

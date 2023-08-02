@@ -8,7 +8,11 @@ use std::time::Duration;
 use url::ParseError;
 
 mod models;
+
+#[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod tests_random;
 
 const GW_API_URL: &str = "http://www.deezer.com/ajax/gw-light.php";
 const API_URL: &str = "https://api.deezer.com/";
@@ -91,13 +95,16 @@ impl Deezer {
     }
 
     fn method_call(&self, path: &str) -> Result<Response, DeezerError> {
-        let url = match Url::parse(API_URL) {
+        let mut url = match Url::parse(API_URL) {
             Ok(base_url) => match base_url.join(path) {
                 Ok(url) => url,
                 Err(error) => return Err(DeezerError::ParseError(error)),
             },
             Err(error) => return Err(DeezerError::ParseError(error)),
         };
+        let mut params: HashMap<String, String> = url.query_pairs().map(|x| (x.0.into_owned(), x.1.into_owned())).collect();
+        params.entry("limit".to_string()).or_insert("100".to_string());
+        url.query_pairs_mut().clear().extend_pairs(params.into_iter());
         let response = self.client.get(url).send();
         match response {
             Ok(r) => Ok(r),
@@ -105,23 +112,20 @@ impl Deezer {
         }
     }
 
-    /*
-    This method should be used for future implementations over those endpoints where a list of objects is returned,
-    and where it is possible to send (index, limit) parameters, those future implementations should take care
-    of the returned payload and appropriately manage retrieving the next set of objects based on the total. The ideal
-    solution would be to implement some custom methods on those objects to manually or automatically fetch the next set of item
-    based on the url contained in the json next key
-    */
-    #[allow(dead_code)]
-    fn method_call_params(&self, path: &str, params: HashMap<&str, String>) -> Result<Response, DeezerError> {
-        let url = match Url::parse(API_URL) {
+    fn method_call_params(&self, path: &str, params: HashMap<String, String>) -> Result<Response, DeezerError> {
+        let mut url = match Url::parse(API_URL) {
             Ok(base_url) => match base_url.join(path) {
                 Ok(url) => url,
                 Err(error) => return Err(DeezerError::ParseError(error)),
             },
             Err(error) => return Err(DeezerError::ParseError(error)),
         };
-        let response = self.client.get(url).form(&params).send();
+        let mut params: HashMap<String, String> = params.clone();
+        params.extend(url.query_pairs().map(|x| (x.0.into_owned(), x.1.into_owned())));
+        params.entry("limit".to_string()).or_insert("100".to_string());
+        url.query_pairs_mut().clear().extend_pairs(params.into_iter());
+        println!("{:?}", url.query());
+        let response = self.client.get(url).send();
         match response {
             Ok(r) => Ok(r),
             Err(error) => Err(DeezerError::RequestError(error)),
@@ -190,7 +194,7 @@ impl Deezer {
         Ok(response)
     }
 
-    pub fn gw_track(&self, song_id: u64) -> Result<models::gw_track::TrackResults, DeezerError> {
+    pub fn gw_track(&self, song_id: u64) -> Result<models::gw::TrackData, DeezerError> {
         let params: HashMap<&str, String> = [("sng_id", song_id.to_string())].into();
         let response: Response = match self.gw_method_call_params("deezer.pageTrack", params) {
             Ok(r) => r,
@@ -203,7 +207,7 @@ impl Deezer {
         }
     }
 
-    pub fn gw_song(&self, song_id: u64) -> Result<models::gw_song::Song, DeezerError> {
+    pub fn gw_song(&self, song_id: u64) -> Result<models::gw::Song, DeezerError> {
         let params: HashMap<&str, String> = [("sng_id", song_id.to_string())].into();
         let response: Response = match self.gw_method_call_params("song.getData", params) {
             Ok(r) => r,
@@ -216,7 +220,7 @@ impl Deezer {
         }
     }
 
-    pub fn gw_songs(&self, song_ids: &Vec<u64>) -> Result<models::gw_song::SongListData, DeezerError> {
+    pub fn gw_songs(&self, song_ids: &Vec<u64>) -> Result<models::gw::SongListData, DeezerError> {
         let body: Value = json!({"sng_ids": song_ids});
         let response: Response = match self.gw_method_call_body("song.getListData", &body) {
             Ok(r) => r,
@@ -229,7 +233,7 @@ impl Deezer {
         }
     }
 
-    pub fn gw_songs_by_album(&self, album_id: u64) -> Result<models::gw_song::SongListData, DeezerError> {
+    pub fn gw_songs_by_album(&self, album_id: u64) -> Result<models::gw::SongListData, DeezerError> {
         let params: HashMap<&str, String> = [("alb_id", album_id.to_string())].into();
         let response: Response = match self.gw_method_call_params("song.getListByAlbum", params) {
             Ok(r) => r,
@@ -242,7 +246,7 @@ impl Deezer {
         }
     }
 
-    pub fn gw_album(&self, album_id: u64) -> Result<models::gw_album::Album, DeezerError> {
+    pub fn gw_album(&self, album_id: u64) -> Result<models::gw::Album, DeezerError> {
         let params: HashMap<&str, String> = [("alb_id", album_id.to_string())].into();
         let response: Response = match self.gw_method_call_params("album.getData", params) {
             Ok(r) => r,
@@ -255,7 +259,7 @@ impl Deezer {
         }
     }
 
-    pub fn gw_lyrics(&self, song_id: u64) -> Result<models::gw_track::Lyrics, DeezerError> {
+    pub fn gw_lyrics(&self, song_id: u64) -> Result<models::gw::Lyrics, DeezerError> {
         let params: HashMap<&str, String> = [("sng_id", song_id.to_string())].into();
         let response: Response = match self.gw_method_call_params("song.getLyrics", params) {
             Ok(r) => r,
@@ -268,8 +272,8 @@ impl Deezer {
         }
     }
 
-    // TODO payload is often huge, models need to be fixed to match returned json, and takes a lot of time
-    // pub fn gw_artist(&self, artist_id: u64, lang: &str) -> Result<models::gw_artist::ArtistResults, DeezerError> {
+    // TODO payload is huge, models need to be implemented to match returned json, and takes a lot of time
+    // pub fn gw_artist(&self, artist_id: u64, lang: &str) -> Result<models::gw::ArtistResults, DeezerError> {
     //     let params: HashMap<&str, String> = [("art_id", artist_id.to_string()), ("lang", lang.to_string())].into();
     //     let response = match self.gw_method_call_params("deezer.pageArtist", params) {
     //         Ok(r) => r,
@@ -283,7 +287,7 @@ impl Deezer {
     //     Ok(track)
     // }
 
-    pub fn track(&self, song_id: u64) -> Result<models::track::Track, DeezerError> {
+    pub fn track(&self, song_id: u64) -> Result<models::api::MainTrack, DeezerError> {
         let path: String = format!("track/{}", song_id);
         let response: Response = self.method_call(path.as_str())?;
         let value: Value = parse_response_to_value(response)?;
@@ -293,7 +297,7 @@ impl Deezer {
         }
     }
 
-    pub fn track_by_isrc(&self, isrc: &str) -> Result<models::track::Track, DeezerError> {
+    pub fn track_by_isrc(&self, isrc: &str) -> Result<models::api::MainTrack, DeezerError> {
         let path: String = format!("track/isrc:{}", isrc);
         let response: Response = self.method_call(path.as_str())?;
         let value: Value = parse_response_to_value(response)?;
@@ -303,7 +307,7 @@ impl Deezer {
         }
     }
 
-    pub fn album(&self, album_id: u64) -> Result<models::album::Album, DeezerError> {
+    pub fn album(&self, album_id: u64) -> Result<models::api::MainAlbum, DeezerError> {
         let path: String = format!("album/{}", album_id);
         let response: Response = self.method_call(path.as_str())?;
         let value: Value = parse_response_to_value(response)?;
@@ -313,7 +317,7 @@ impl Deezer {
         }
     }
 
-    pub fn album_by_upc(&self, upc: u64) -> Result<models::album::Album, DeezerError> {
+    pub fn album_by_upc(&self, upc: u64) -> Result<models::api::MainAlbum, DeezerError> {
         let path: String = format!("album/upc:{}", upc);
         let response: Response = self.method_call(path.as_str())?;
         let value: Value = parse_response_to_value(response)?;
@@ -323,17 +327,30 @@ impl Deezer {
         }
     }
 
-    pub fn album_tracks(&self, album_id: u64) -> Result<Vec<models::album::AlbumTrack>, DeezerError> {
-        let path: String = format!("album/{}/tracks", album_id);
-        let response: Response = self.method_call(path.as_str())?;
-        let value: Value = parse_response_to_value(response)?;
-        match serde_json::from_value(value["data"].clone()) {
-            Ok(v) => Ok(v),
-            Err(err) => return Err(DeezerError::JsonError(err)),
+    pub fn album_tracks(&self, album_id: u64) -> Result<Vec<models::api::Track>, DeezerError> {
+        let mut tracks: Vec<models::api::Track> = Vec::new();
+        let mut path: String = format!("album/{}/tracks", album_id);
+        loop {
+            let response: Response = self.method_call(path.as_str())?;
+            let value: Value = parse_response_to_value(response)?;
+            let result: Vec<models::api::Track> = match serde_json::from_value(value["data"].clone()) {
+                Ok(v) => v,
+                Err(err) => return Err(DeezerError::JsonError(err)),
+            };
+            tracks.extend(result);
+            if let Some(next) = value.get("next") {
+                path = match next.as_str() {
+                    Some(next_url) => next_url.to_string(),
+                    None => break,
+                };
+            } else {
+                break;
+            }
         }
+        Ok(tracks)
     }
 
-    pub fn artist(&self, artist_id: u64) -> Result<models::artist::Artist, DeezerError> {
+    pub fn artist(&self, artist_id: u64) -> Result<models::api::Artist, DeezerError> {
         let path: String = format!("artist/{}", artist_id);
         let response: Response = self.method_call(path.as_str())?;
         let value: Value = parse_response_to_value(response)?;
@@ -343,33 +360,281 @@ impl Deezer {
         }
     }
 
-    pub fn artist_albums(&self, artist_id: u64) -> Result<Vec<models::artist::Album>, DeezerError> {
-        let path: String = format!("artist/{}/albums", artist_id);
-        let response: Response = self.method_call(path.as_str())?;
-        let value: Value = parse_response_to_value(response)?;
-        match serde_json::from_value(value["data"].clone()) {
-            Ok(v) => Ok(v),
-            Err(err) => return Err(DeezerError::JsonError(err)),
+    pub fn artist_albums(&self, artist_id: u64) -> Result<Vec<models::api::Album>, DeezerError> {
+        let mut albums: Vec<models::api::Album> = Vec::new();
+        let mut path: String = format!("artist/{}/albums", artist_id);
+        loop {
+            let response: Response = self.method_call(path.as_str())?;
+            let value: Value = parse_response_to_value(response)?;
+            let result: Vec<models::api::Album> = match serde_json::from_value(value["data"].clone()) {
+                Ok(v) => v,
+                Err(err) => return Err(DeezerError::JsonError(err)),
+            };
+            albums.extend(result);
+            if let Some(next) = value.get("next") {
+                path = match next.as_str() {
+                    Some(next_url) => next_url.to_string(),
+                    None => break,
+                };
+            } else {
+                break;
+            }
         }
+        Ok(albums)
     }
 
-    pub fn artist_top_tracks(&self, artist_id: u64) -> Result<Vec<models::artist::Track>, DeezerError> {
-        let path: String = format!("artist/{}/top", artist_id);
-        let response: Response = self.method_call(path.as_str())?;
-        let value: Value = parse_response_to_value(response)?;
-        match serde_json::from_value(value["data"].clone()) {
-            Ok(v) => Ok(v),
-            Err(err) => return Err(DeezerError::JsonError(err)),
+    pub fn artist_top_tracks(&self, artist_id: u64) -> Result<Vec<models::api::Track>, DeezerError> {
+        let mut tracks: Vec<models::api::Track> = Vec::new();
+        let mut path: String = format!("artist/{}/top", artist_id);
+        loop {
+            let response: Response = self.method_call(path.as_str())?;
+            let value: Value = parse_response_to_value(response)?;
+            let result: Vec<models::api::Track> = match serde_json::from_value(value["data"].clone()) {
+                Ok(v) => v,
+                Err(err) => return Err(DeezerError::JsonError(err)),
+            };
+            tracks.extend(result);
+            if let Some(next) = value.get("next") {
+                path = match next.as_str() {
+                    Some(next_url) => next_url.to_string(),
+                    None => break,
+                };
+            } else {
+                break;
+            }
         }
+        Ok(tracks)
     }
 
-    pub fn artist_related_artists(&self, artist_id: u64) -> Result<Vec<models::artist::RelatedArtist>, DeezerError> {
-        let path: String = format!("artist/{}/related", artist_id);
-        let response: Response = self.method_call(path.as_str())?;
-        let value: Value = parse_response_to_value(response)?;
-        match serde_json::from_value(value["data"].clone()) {
-            Ok(v) => Ok(v),
-            Err(err) => return Err(DeezerError::JsonError(err)),
+    pub fn artist_related_artists(&self, artist_id: u64) -> Result<Vec<models::api::RelatedArtist>, DeezerError> {
+        let mut artists: Vec<models::api::RelatedArtist> = Vec::new();
+        let mut path: String = format!("artist/{}/related", artist_id);
+        loop {
+            let response: Response = self.method_call(path.as_str())?;
+            let value: Value = parse_response_to_value(response)?;
+            let result: Vec<models::api::RelatedArtist> = match serde_json::from_value(value["data"].clone()) {
+                Ok(v) => v,
+                Err(err) => return Err(DeezerError::JsonError(err)),
+            };
+            artists.extend(result);
+            if let Some(next) = value.get("next") {
+                path = match next.as_str() {
+                    Some(next_url) => next_url.to_string(),
+                    None => break,
+                };
+            } else {
+                break;
+            }
         }
+        Ok(artists)
+    }
+
+    pub fn artist_radio(&self, artist_id: u64) -> Result<Vec<models::api::Track>, DeezerError> {
+        let mut tracks: Vec<models::api::Track> = Vec::new();
+        let mut path: String = format!("artist/{}/radio", artist_id);
+        loop {
+            let response: Response = self.method_call(path.as_str())?;
+            let value: Value = parse_response_to_value(response)?;
+            let result: Vec<models::api::Track> = match serde_json::from_value(value["data"].clone()) {
+                Ok(v) => v,
+                Err(err) => return Err(DeezerError::JsonError(err)),
+            };
+            tracks.extend(result);
+            if let Some(next) = value.get("next") {
+                path = match next.as_str() {
+                    Some(next_url) => next_url.to_string(),
+                    None => break,
+                };
+            } else {
+                break;
+            }
+        }
+        Ok(tracks)
+    }
+
+    pub fn artist_playlists(&self, artist_id: u64) -> Result<Vec<models::api::Playlist>, DeezerError> {
+        let mut playlists: Vec<models::api::Playlist> = Vec::new();
+        let mut path: String = format!("artist/{}/playlists", artist_id);
+        loop {
+            let response: Response = self.method_call(path.as_str())?;
+            let value: Value = parse_response_to_value(response)?;
+            let result: Vec<models::api::Playlist> = match serde_json::from_value(value["data"].clone()) {
+                Ok(v) => v,
+                Err(err) => return Err(DeezerError::JsonError(err)),
+            };
+            playlists.extend(result);
+            if let Some(next) = value.get("next") {
+                path = match next.as_str() {
+                    Some(next_url) => next_url.to_string(),
+                    None => break,
+                };
+            } else {
+                break;
+            }
+        }
+        Ok(playlists)
+    }
+
+    pub fn editorial(&self) -> Result<Vec<models::api::Editorial>, DeezerError> {
+        let mut editorial: Vec<models::api::Editorial> = Vec::new();
+        let mut path: String = "editorial".to_string();
+        loop {
+            let response: Response = self.method_call(path.as_str())?;
+            let value: Value = parse_response_to_value(response)?;
+            let result: Vec<models::api::Editorial> = match serde_json::from_value(value["data"].clone()) {
+                Ok(v) => v,
+                Err(err) => return Err(DeezerError::JsonError(err)),
+            };
+            editorial.extend(result);
+            if let Some(next) = value.get("next") {
+                path = match next.as_str() {
+                    Some(next_url) => next_url.to_string(),
+                    None => break,
+                };
+            } else {
+                break;
+            }
+        }
+        Ok(editorial)
+    }
+
+    pub fn search(&self, query: &str, strict: bool) -> Result<Vec<models::api::Track>, DeezerError> {
+        let mut searches: Vec<models::api::Track> = Vec::new();
+        let mut path: String = format!("search?q={query}");
+        let mut params = HashMap::new();
+        match strict {
+            true => params.insert("strict".to_string(), "on".to_string()),
+            false => params.insert("strict".to_string(), "off".to_string()),
+        };
+        loop {
+            let response: Response = self.method_call_params(path.as_str(), params.clone())?;
+            let value: Value = parse_response_to_value(response)?;
+            let result: Vec<models::api::Track> = match serde_json::from_value(value["data"].clone()) {
+                Ok(v) => v,
+                Err(err) => return Err(DeezerError::JsonError(err)),
+            };
+            searches.extend(result);
+            if let Some(next) = value.get("next") {
+                path = match next.as_str() {
+                    Some(next_url) => next_url.to_string(),
+                    None => break,
+                };
+            } else {
+                break;
+            }
+        }
+        Ok(searches)
+    }
+
+    pub fn search_album(&self, query: &str, strict: bool) -> Result<Vec<models::api::Album>, DeezerError> {
+        let mut searches: Vec<models::api::Album> = Vec::new();
+        let mut path: String = format!("search/album?q={query}");
+        let mut params = HashMap::new();
+        match strict {
+            true => params.insert("strict".to_string(), "on".to_string()),
+            false => params.insert("strict".to_string(), "off".to_string()),
+        };
+        loop {
+            let response: Response = self.method_call_params(path.as_str(), params.clone())?;
+            let value: Value = parse_response_to_value(response)?;
+            let result: Vec<models::api::Album> = match serde_json::from_value(value["data"].clone()) {
+                Ok(v) => v,
+                Err(err) => return Err(DeezerError::JsonError(err)),
+            };
+            searches.extend(result);
+            if let Some(next) = value.get("next") {
+                path = match next.as_str() {
+                    Some(next_url) => next_url.to_string(),
+                    None => break,
+                };
+            } else {
+                break;
+            }
+        }
+        Ok(searches)
+    }
+
+    pub fn search_artist(&self, query: &str, strict: bool) -> Result<Vec<models::api::Artist>, DeezerError> {
+        let mut searches: Vec<models::api::Artist> = Vec::new();
+        let mut path: String = format!("search/artist?q={query}");
+        let mut params = HashMap::new();
+        match strict {
+            true => params.insert("strict".to_string(), "on".to_string()),
+            false => params.insert("strict".to_string(), "off".to_string()),
+        };
+        loop {
+            let response: Response = self.method_call_params(path.as_str(), params.clone())?;
+            let value: Value = parse_response_to_value(response)?;
+            let result: Vec<models::api::Artist> = match serde_json::from_value(value["data"].clone()) {
+                Ok(v) => v,
+                Err(err) => return Err(DeezerError::JsonError(err)),
+            };
+            searches.extend(result);
+            if let Some(next) = value.get("next") {
+                path = match next.as_str() {
+                    Some(next_url) => next_url.to_string(),
+                    None => break,
+                };
+            } else {
+                break;
+            }
+        }
+        Ok(searches)
+    }
+
+    pub fn search_playlist(&self, query: &str, strict: bool) -> Result<Vec<models::api::Playlist>, DeezerError> {
+        let mut searches: Vec<models::api::Playlist> = Vec::new();
+        let mut path: String = format!("search/playlist?q={query}");
+        let mut params = HashMap::new();
+        match strict {
+            true => params.insert("strict".to_string(), "on".to_string()),
+            false => params.insert("strict".to_string(), "off".to_string()),
+        };
+        loop {
+            let response: Response = self.method_call_params(path.as_str(), params.clone())?;
+            let value: Value = parse_response_to_value(response)?;
+            let result: Vec<models::api::Playlist> = match serde_json::from_value(value["data"].clone()) {
+                Ok(v) => v,
+                Err(err) => return Err(DeezerError::JsonError(err)),
+            };
+            searches.extend(result);
+            if let Some(next) = value.get("next") {
+                path = match next.as_str() {
+                    Some(next_url) => next_url.to_string(),
+                    None => break,
+                };
+            } else {
+                break;
+            }
+        }
+        Ok(searches)
+    }
+
+    pub fn search_user(&self, query: &str, strict: bool) -> Result<Vec<models::api::Playlist>, DeezerError> {
+        let mut searches: Vec<models::api::Playlist> = Vec::new();
+        let mut path: String = format!("search/user?q={query}");
+        let mut params = HashMap::new();
+        match strict {
+            true => params.insert("strict".to_string(), "on".to_string()),
+            false => params.insert("strict".to_string(), "off".to_string()),
+        };
+        loop {
+            let response: Response = self.method_call_params(path.as_str(), params.clone())?;
+            let value: Value = parse_response_to_value(response)?;
+            let result: Vec<models::api::Playlist> = match serde_json::from_value(value["data"].clone()) {
+                Ok(v) => v,
+                Err(err) => return Err(DeezerError::JsonError(err)),
+            };
+            searches.extend(result);
+            if let Some(next) = value.get("next") {
+                path = match next.as_str() {
+                    Some(next_url) => next_url.to_string(),
+                    None => break,
+                };
+            } else {
+                break;
+            }
+        }
+        Ok(searches)
     }
 }
