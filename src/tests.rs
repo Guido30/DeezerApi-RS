@@ -53,6 +53,75 @@ fn test_editorial() {
 }
 
 #[test]
+fn test_editorial_by_genre() {
+    let deezer = Deezer::new();
+    let editorial = deezer.editorial_by_genre(113);
+    if let Err(ref error) = editorial {
+        println!("Error {:?} ", error);
+    }
+    assert_eq!(editorial.is_ok(), true);
+}
+
+#[test]
+fn test_genres() {
+    let deezer = Deezer::new();
+    let genres = deezer.genres();
+    if let Err(ref error) = genres {
+        println!("Error {:?} ", error);
+    }
+    assert_eq!(genres.is_ok(), true);
+}
+
+#[test]
+fn test_genre() {
+    let genre_ids = [0, 113, 152];
+    let deezer = Deezer::new();
+    let genres = vec![
+        deezer.genre(genre_ids[0]),
+        deezer.genre(genre_ids[1]),
+        deezer.genre(genre_ids[2]),
+    ];
+    print_errors_for_items(&genre_ids, &genres);
+    assert_eq!(genres.iter().all(Result::is_ok), true);
+}
+
+#[test]
+fn test_genre_artists() {
+    let genre_ids = [0, 113, 152];
+    let deezer = Deezer::new();
+    let artists = vec![
+        deezer.genre_artists(genre_ids[0]),
+        deezer.genre_artists(genre_ids[1]),
+        deezer.genre_artists(genre_ids[2]),
+    ];
+    print_errors_for_items(&genre_ids, &artists);
+    assert_eq!(artists.iter().all(Result::is_ok), true);
+}
+
+#[test]
+fn test_genre_radio() {
+    let genre_ids = [0, 113, 152];
+    let deezer = Deezer::new();
+    let radios = vec![
+        deezer.genre_radios(genre_ids[0]),
+        deezer.genre_radios(genre_ids[1]),
+        deezer.genre_radios(genre_ids[2]),
+    ];
+    print_errors_for_items(&genre_ids, &radios);
+    assert_eq!(radios.iter().all(Result::is_ok), true);
+}
+
+#[test]
+fn test_infos() {
+    let deezer = Deezer::new();
+    let genres = deezer.infos();
+    if let Err(ref error) = genres {
+        println!("Error {:?} ", error);
+    }
+    assert_eq!(genres.is_ok(), true);
+}
+
+#[test]
 fn test_search() {
     let queries = ["Hans Zimmer", "OneRepublic", "Eric Prydz"];
     let deezer = Deezer::new();
@@ -66,9 +135,61 @@ fn test_search() {
 }
 
 #[test]
+fn test_search_album() {
+    let queries = ["Hans Zimmer", "OneRepublic", "Eric Prydz"];
+    let deezer = Deezer::new();
+    let searches = vec![
+        deezer.search_album(queries[0], false),
+        deezer.search_album(queries[1], false),
+        deezer.search_album(queries[2], false),
+    ];
+    print_errors_for_items(&queries, &searches);
+    assert_eq!(searches.iter().all(Result::is_ok), true);
+}
+
+#[test]
+fn test_search_artist() {
+    let queries = ["Hans Zimmer", "OneRepublic", "Eric Prydz"];
+    let deezer = Deezer::new();
+    let searches = vec![
+        deezer.search_artist(queries[0], false),
+        deezer.search_artist(queries[1], false),
+        deezer.search_artist(queries[2], false),
+    ];
+    print_errors_for_items(&queries, &searches);
+    assert_eq!(searches.iter().all(Result::is_ok), true);
+}
+
+#[test]
+fn test_search_playlist() {
+    let queries = ["Hans Zimmer", "OneRepublic", "Eric Prydz"];
+    let deezer = Deezer::new();
+    let searches = vec![
+        deezer.search_playlist(queries[0], false),
+        deezer.search_playlist(queries[1], false),
+        deezer.search_playlist(queries[2], false),
+    ];
+    print_errors_for_items(&queries, &searches);
+    assert_eq!(searches.iter().all(Result::is_ok), true);
+}
+
+#[test]
+fn test_search_user() {
+    let queries = ["Hans Zimmer", "OneRepublic", "Eric Prydz"];
+    let deezer = Deezer::new();
+    let searches = vec![
+        deezer.search_user(queries[0], false),
+        deezer.search_user(queries[1], false),
+        deezer.search_user(queries[2], false),
+    ];
+    print_errors_for_items(&queries, &searches);
+    assert_eq!(searches.iter().all(Result::is_ok), true);
+}
+
+#[test]
 fn temporary() {
     let deezer = Deezer::new();
-    let payload = deezer.search("OneRepublic", false).unwrap();
-    println!("{:?}", payload.len());
+    let payload = deezer.infos().unwrap();
+    println!("{:#?}", payload);
     assert_eq!(false, true);
 }

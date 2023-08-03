@@ -1,3 +1,6 @@
+use serde_json::Value;
+use std::collections::HashMap;
+
 use serde::Deserialize;
 
 #[derive(Debug, Clone, Deserialize)]
@@ -187,15 +190,25 @@ pub struct Playlist {
     pub creation_date: String,
     pub md5_image: String,
     pub picture_type: String,
-    pub user: PlaylistUser,
+    pub user: User,
     #[serde(rename = "type")]
     pub type_field: String,
 }
 
 #[derive(Debug, Clone, Deserialize, Default)]
-pub struct PlaylistUser {
+pub struct User {
     pub id: u64,
     pub name: String,
+    pub link: Option<String>,
+    pub share: Option<String>,
+    pub picture: Option<String>,
+    pub picture_small: Option<String>,
+    pub picture_medium: Option<String>,
+    pub picture_big: Option<String>,
+    pub picture_xl: Option<String>,
+    pub nb_album: Option<u64>,
+    pub nb_fan: Option<u64>,
+    pub radio: Option<bool>,
     pub tracklist: String,
     #[serde(rename = "type")]
     pub type_field: String,
@@ -230,4 +243,34 @@ pub struct Editorial {
     pub picture_xl: String,
     #[serde(rename = "type")]
     pub type_field: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct Radio {
+    pub id: u64,
+    pub title: String,
+    pub picture: String,
+    pub picture_small: String,
+    pub picture_medium: String,
+    pub picture_big: String,
+    pub picture_xl: String,
+    pub tracklist: String,
+    pub md5_image: String,
+    #[serde(rename = "type")]
+    pub type_field: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct Info {
+    pub country_iso: String,
+    pub country: String,
+    pub open: bool,
+    pub pop: String,
+    pub upload_token: String,
+    pub upload_token_lifetime: i64,
+    pub user_token: Value,
+    pub hosts: HashMap<String, String>,
+    pub ads: Value,
+    pub has_podcasts: bool,
+    pub offers: Vec<Value>,
 }

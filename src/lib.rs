@@ -4,6 +4,7 @@ use reqwest::{header, Error as RequestError, Url};
 use serde_json::{json, Error as JsonError, Value};
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::fmt::format;
 use std::time::Duration;
 use url::ParseError;
 
@@ -498,6 +499,66 @@ impl Deezer {
         Ok(editorial)
     }
 
+    pub fn editorial_by_genre(&self, genre_id: u64) -> Result<models::api::Editorial, DeezerError> {
+        let path: String = format!("editorial/{}", genre_id);
+        let response: Response = self.method_call(path.as_str())?;
+        let value: Value = parse_response_to_value(response)?;
+        match serde_json::from_value(value) {
+            Ok(v) => Ok(v),
+            Err(err) => return Err(DeezerError::JsonError(err)),
+        }
+    }
+
+    pub fn genres(&self) -> Result<Vec<models::api::Editorial>, DeezerError> {
+        let path = "genre";
+        let response: Response = self.method_call(path)?;
+        let value: Value = parse_response_to_value(response)?;
+        match serde_json::from_value(value["data"].clone()) {
+            Ok(v) => Ok(v),
+            Err(err) => return Err(DeezerError::JsonError(err)),
+        }
+    }
+
+    pub fn genre(&self, genre_id: u64) -> Result<models::api::Editorial, DeezerError> {
+        let path = format!("genre/{}", genre_id);
+        let response: Response = self.method_call(path.as_str())?;
+        let value: Value = parse_response_to_value(response)?;
+        match serde_json::from_value(value) {
+            Ok(v) => Ok(v),
+            Err(err) => return Err(DeezerError::JsonError(err)),
+        }
+    }
+
+    pub fn genre_artists(&self, genre_id: u64) -> Result<Vec<models::api::Artist>, DeezerError> {
+        let path = format!("genre/{}/artists", genre_id);
+        let response: Response = self.method_call(path.as_str())?;
+        let value: Value = parse_response_to_value(response)?;
+        match serde_json::from_value(value["data"].clone()) {
+            Ok(v) => Ok(v),
+            Err(err) => return Err(DeezerError::JsonError(err)),
+        }
+    }
+
+    pub fn genre_radios(&self, genre_id: u64) -> Result<Vec<models::api::Radio>, DeezerError> {
+        let path = format!("genre/{}/radios", genre_id);
+        let response: Response = self.method_call(path.as_str())?;
+        let value: Value = parse_response_to_value(response)?;
+        match serde_json::from_value(value["data"].clone()) {
+            Ok(v) => Ok(v),
+            Err(err) => return Err(DeezerError::JsonError(err)),
+        }
+    }
+
+    pub fn infos(&self) -> Result<models::api::Info, DeezerError> {
+        let path = "infos";
+        let response: Response = self.method_call(path)?;
+        let value: Value = parse_response_to_value(response)?;
+        match serde_json::from_value(value) {
+            Ok(v) => Ok(v),
+            Err(err) => return Err(DeezerError::JsonError(err)),
+        }
+    }
+
     pub fn search(&self, query: &str, strict: bool) -> Result<Vec<models::api::Track>, DeezerError> {
         let mut searches: Vec<models::api::Track> = Vec::new();
         let mut path: String = format!("search?q={query}");
@@ -610,8 +671,8 @@ impl Deezer {
         Ok(searches)
     }
 
-    pub fn search_user(&self, query: &str, strict: bool) -> Result<Vec<models::api::Playlist>, DeezerError> {
-        let mut searches: Vec<models::api::Playlist> = Vec::new();
+    pub fn search_user(&self, query: &str, strict: bool) -> Result<Vec<models::api::User>, DeezerError> {
+        let mut searches: Vec<models::api::User> = Vec::new();
         let mut path: String = format!("search/user?q={query}");
         let mut params = HashMap::new();
         match strict {
@@ -621,7 +682,7 @@ impl Deezer {
         loop {
             let response: Response = self.method_call_params(path.as_str(), params.clone())?;
             let value: Value = parse_response_to_value(response)?;
-            let result: Vec<models::api::Playlist> = match serde_json::from_value(value["data"].clone()) {
+            let result: Vec<models::api::User> = match serde_json::from_value(value["data"].clone()) {
                 Ok(v) => v,
                 Err(err) => return Err(DeezerError::JsonError(err)),
             };
