@@ -17,26 +17,26 @@ fn refresh_token() {
 }
 
 #[test]
-fn test_track_by_isrc() {
+fn test_track_from_isrc() {
     let isrcs = ["TCAFP2196109", "GBUM71507634", "GBAYE0200771"];
     let deezer = Deezer::new();
     let tracks = vec![
-        deezer.track_by_isrc(isrcs[0]),
-        deezer.track_by_isrc(isrcs[1]),
-        deezer.track_by_isrc(isrcs[2]),
+        deezer.track_from_isrc(isrcs[0]),
+        deezer.track_from_isrc(isrcs[1]),
+        deezer.track_from_isrc(isrcs[2]),
     ];
     print_errors_for_items(&isrcs, &tracks);
     assert_eq!(tracks.iter().all(Result::is_ok), true);
 }
 
 #[test]
-fn test_album_by_upc() {
+fn test_album_from_upc() {
     let upcs = [3700368446423, 634479384776, 707541948593];
     let deezer = Deezer::new();
     let albums = vec![
-        deezer.album_by_upc(upcs[0]),
-        deezer.album_by_upc(upcs[1]),
-        deezer.album_by_upc(upcs[2]),
+        deezer.album_from_upc(upcs[0]),
+        deezer.album_from_upc(upcs[1]),
+        deezer.album_from_upc(upcs[2]),
     ];
     print_errors_for_items(&upcs, &albums);
     assert_eq!(albums.iter().all(Result::is_ok), true);
@@ -53,9 +53,9 @@ fn test_editorial() {
 }
 
 #[test]
-fn test_editorial_by_genre() {
+fn test_editorial_from_genre() {
     let deezer = Deezer::new();
-    let editorial = deezer.editorial_by_genre(113);
+    let editorial = deezer.editorial_from_genre(113);
     if let Err(ref error) = editorial {
         println!("Error {:?} ", error);
     }
@@ -76,11 +76,7 @@ fn test_genres() {
 fn test_genre() {
     let genre_ids = [0, 113, 152];
     let deezer = Deezer::new();
-    let genres = vec![
-        deezer.genre(genre_ids[0]),
-        deezer.genre(genre_ids[1]),
-        deezer.genre(genre_ids[2]),
-    ];
+    let genres = vec![deezer.genre(genre_ids[0]), deezer.genre(genre_ids[1]), deezer.genre(genre_ids[2])];
     print_errors_for_items(&genre_ids, &genres);
     assert_eq!(genres.iter().all(Result::is_ok), true);
 }
@@ -119,6 +115,68 @@ fn test_infos() {
         println!("Error {:?} ", error);
     }
     assert_eq!(genres.is_ok(), true);
+}
+
+#[test]
+fn test_radios() {
+    let deezer = Deezer::new();
+    let radios = deezer.radios();
+    if let Err(ref error) = radios {
+        println!("Error {:?} ", error);
+    }
+    assert_eq!(radios.is_ok(), true);
+}
+
+#[test]
+fn test_radio() {
+    let radio_ids = [6, 132, 37151];
+    let deezer = Deezer::new();
+    let radios = vec![deezer.radio(radio_ids[0]), deezer.radio(radio_ids[1]), deezer.radio(radio_ids[2])];
+    print_errors_for_items(&radio_ids, &radios);
+    assert_eq!(radios.iter().all(Result::is_ok), true);
+}
+
+#[test]
+fn test_radio_tracks() {
+    let radio_ids = [6, 132, 37151];
+    let deezer = Deezer::new();
+    let radios = vec![
+        deezer.radio_tracks(radio_ids[0]),
+        deezer.radio_tracks(radio_ids[1]),
+        deezer.radio_tracks(radio_ids[2]),
+    ];
+    print_errors_for_items(&radio_ids, &radios);
+    assert_eq!(radios.iter().all(Result::is_ok), true);
+}
+
+#[test]
+fn test_radio_genres() {
+    let deezer = Deezer::new();
+    let radios = deezer.radio_genres();
+    if let Err(ref error) = radios {
+        println!("Error {:?} ", error);
+    }
+    assert_eq!(radios.is_ok(), true);
+}
+
+#[test]
+fn test_radio_top() {
+    let deezer = Deezer::new();
+    let radios = deezer.radio_top();
+    if let Err(ref error) = radios {
+        println!("Error {:?} ", error);
+    }
+    assert_eq!(radios.is_ok(), true);
+}
+
+#[test]
+fn test_radio_lists() {
+    let deezer = Deezer::new();
+    let radios = deezer.radio_lists();
+    if let Err(ref error) = radios {
+        println!("Error {:?} ", error);
+    }
+    assert_eq!(radios.is_ok(), true);
 }
 
 #[test]
@@ -189,7 +247,7 @@ fn test_search_user() {
 #[test]
 fn temporary() {
     let deezer = Deezer::new();
-    let payload = deezer.infos().unwrap();
+    let payload = deezer.gw_track(755330622).unwrap();
     println!("{:#?}", payload);
     assert_eq!(false, true);
 }

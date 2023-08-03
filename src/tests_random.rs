@@ -50,13 +50,13 @@ fn rand_gw_songs() {
 }
 
 #[test]
-fn rand_gw_songs_by_album() {
+fn rand_gw_songs_from_album() {
     let album_ids = gen_three_rand_nums(1..=100_000);
     let deezer = Deezer::new();
     let song_list = vec![
-        deezer.gw_songs_by_album(album_ids[0]),
-        deezer.gw_songs_by_album(album_ids[1]),
-        deezer.gw_songs_by_album(album_ids[2]),
+        deezer.gw_songs_from_album(album_ids[0]),
+        deezer.gw_songs_from_album(album_ids[1]),
+        deezer.gw_songs_from_album(album_ids[2]),
     ];
     print_errors_for_items(&album_ids, &song_list);
     assert_eq!(song_list.iter().all(Result::is_ok), true);

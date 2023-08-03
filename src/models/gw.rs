@@ -187,14 +187,14 @@ pub struct Media {
 #[serde(rename_all = "UPPERCASE")]
 pub struct Lyrics {
     pub lyrics_id: String,
-    pub lyrics_sync_json: Option<Vec<LyricsSyncJson>>,
+    pub lyrics_sync_json: Option<Vec<LyricsSyncItem>>,
     pub lyrics_text: String,
     pub lyrics_copyrights: String,
     pub lyrics_writers: String,
 }
 
 #[derive(Debug, Clone, Deserialize, Default)]
-pub struct LyricsSyncJson {
+pub struct LyricsSyncItem {
     pub lrc_timestamp: Option<String>,
     pub milliseconds: Option<String>,
     pub duration: Option<String>,

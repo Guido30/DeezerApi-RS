@@ -102,6 +102,34 @@ pub struct Track {
     pub explicit_content_lyrics: u8,
     pub explicit_content_cover: u8,
     pub preview: String,
+    pub alternative: Option<AlternativeTrack>,
+    #[serde(default)]
+    pub contributors: Vec<Contributor>,
+    pub md5_image: String,
+    pub artist: Artist,
+    #[serde(default)]
+    pub album: Album,
+    #[serde(rename = "type")]
+    pub type_field: String,
+}
+
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct AlternativeTrack {
+    pub id: u64,
+    pub readable: bool,
+    pub title: String,
+    pub title_short: String,
+    pub title_version: Option<String>,
+    pub isrc: Option<String>,
+    pub link: Option<String>,
+    pub duration: u64,
+    pub track_position: Option<u64>,
+    pub disk_number: Option<u64>,
+    pub rank: u64,
+    pub explicit_lyrics: bool,
+    pub explicit_content_lyrics: u8,
+    pub explicit_content_cover: u8,
+    pub preview: String,
     #[serde(default)]
     pub contributors: Vec<Contributor>,
     pub md5_image: String,
@@ -243,6 +271,13 @@ pub struct Editorial {
     pub picture_xl: String,
     #[serde(rename = "type")]
     pub type_field: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct GenreRadios {
+    pub id: u64,
+    pub title: String,
+    pub radios: Vec<Radio>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
