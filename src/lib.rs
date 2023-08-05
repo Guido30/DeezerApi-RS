@@ -17,9 +17,9 @@ mod tests_random;
 
 const GW_API_URL: &str = "http://www.deezer.com/ajax/gw-light.php";
 const API_URL: &str = "https://api.deezer.com/";
-const USER_AGENT_HEADER: &str = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36";
+const USER_AGENT_HEADER: &str = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.5790.111 Safari/537.36";
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Deezer {
     client: Client,
     token: RefCell<String>,
@@ -103,25 +103,6 @@ impl Deezer {
             Err(error) => return Err(DeezerError::ParseError(error)),
         };
         let mut params: HashMap<String, String> = url.query_pairs().map(|x| (x.0.into_owned(), x.1.into_owned())).collect();
-        params.entry("limit".to_string()).or_insert("100".to_string());
-        url.query_pairs_mut().clear().extend_pairs(params.into_iter());
-        let response = self.client.get(url).send();
-        match response {
-            Ok(r) => Ok(r),
-            Err(error) => Err(DeezerError::RequestError(error)),
-        }
-    }
-
-    fn method_call_params(&self, path: &str, params: HashMap<String, String>) -> Result<Response, DeezerError> {
-        let mut url = match Url::parse(API_URL) {
-            Ok(base_url) => match base_url.join(path) {
-                Ok(url) => url,
-                Err(error) => return Err(DeezerError::ParseError(error)),
-            },
-            Err(error) => return Err(DeezerError::ParseError(error)),
-        };
-        let mut params: HashMap<String, String> = params.clone();
-        params.extend(url.query_pairs().map(|x| (x.0.into_owned(), x.1.into_owned())));
         params.entry("limit".to_string()).or_insert("100".to_string());
         url.query_pairs_mut().clear().extend_pairs(params.into_iter());
         let response = self.client.get(url).send();
@@ -219,33 +200,6 @@ impl Deezer {
         let mut url_path = url_path.to_string();
         loop {
             let response: Response = self.method_call(url_path.as_str())?;
-            let value: Value = parse_response_to_value(response)?;
-            let result: Vec<T> = match serde_json::from_value(value["data"].clone()) {
-                Ok(v) => v,
-                Err(err) => return Err(DeezerError::JsonError(err)),
-            };
-            objects.extend(result);
-            if let Some(next) = value.get("next") {
-                url_path = match next.as_str() {
-                    Some(next_url) => next_url.to_string(),
-                    None => break,
-                };
-            } else {
-                break;
-            }
-        }
-        Ok(objects)
-    }
-
-    fn call_deserialize_api_request_with_params_as_vec<T: DeserializeOwned>(
-        &self,
-        url_path: &str,
-        params: HashMap<String, String>,
-    ) -> Result<Vec<T>, DeezerError> {
-        let mut objects: Vec<T> = Vec::new();
-        let mut url_path = url_path.to_string();
-        loop {
-            let response: Response = self.method_call_params(url_path.as_str(), params.clone())?;
             let value: Value = parse_response_to_value(response)?;
             let result: Vec<T> = match serde_json::from_value(value["data"].clone()) {
                 Ok(v) => v,
@@ -414,47 +368,66 @@ impl Deezer {
     }
 
     pub fn search(&self, query: &str, strict: bool) -> Result<Vec<models::api::Track>, DeezerError> {
-        let mut params = HashMap::new();
-        match strict {
-            true => params.insert("strict".to_string(), "on".to_string()),
-            false => params.insert("strict".to_string(), "off".to_string()),
+        let strict = match strict {
+            true => "on",
+            false => "off",
         };
-        self.call_deserialize_api_request_with_params_as_vec(format!("search?q={query}").as_str(), params)
+        self.call_deserialize_api_request_as_vec(format!("search?q={query}&strict={strict}").as_str())
     }
 
     pub fn search_album(&self, query: &str, strict: bool) -> Result<Vec<models::api::Album>, DeezerError> {
-        let mut params = HashMap::new();
-        match strict {
-            true => params.insert("strict".to_string(), "on".to_string()),
-            false => params.insert("strict".to_string(), "off".to_string()),
+        let strict = match strict {
+            true => "on",
+            false => "off",
         };
-        self.call_deserialize_api_request_with_params_as_vec(format!("search/album?q={query}").as_str(), params)
+        self.call_deserialize_api_request_as_vec(format!("search/album?q={query}&strict={strict}").as_str())
     }
 
     pub fn search_artist(&self, query: &str, strict: bool) -> Result<Vec<models::api::Artist>, DeezerError> {
-        let mut params = HashMap::new();
-        match strict {
-            true => params.insert("strict".to_string(), "on".to_string()),
-            false => params.insert("strict".to_string(), "off".to_string()),
+        let strict = match strict {
+            true => "on",
+            false => "off",
         };
-        self.call_deserialize_api_request_with_params_as_vec(format!("search/artist?q={query}").as_str(), params)
+        self.call_deserialize_api_request_as_vec(format!("search/artist?q={query}&strict={strict}").as_str())
     }
 
     pub fn search_playlist(&self, query: &str, strict: bool) -> Result<Vec<models::api::Playlist>, DeezerError> {
-        let mut params = HashMap::new();
-        match strict {
-            true => params.insert("strict".to_string(), "on".to_string()),
-            false => params.insert("strict".to_string(), "off".to_string()),
+        let strict = match strict {
+            true => "on",
+            false => "off",
         };
-        self.call_deserialize_api_request_with_params_as_vec(format!("search/playlist?q={query}").as_str(), params)
+        self.call_deserialize_api_request_as_vec(format!("search/playlist?q={query}&strict={strict}").as_str())
     }
 
     pub fn search_user(&self, query: &str, strict: bool) -> Result<Vec<models::api::User>, DeezerError> {
-        let mut params = HashMap::new();
-        match strict {
-            true => params.insert("strict".to_string(), "on".to_string()),
-            false => params.insert("strict".to_string(), "off".to_string()),
+        let strict = match strict {
+            true => "on",
+            false => "off",
         };
-        self.call_deserialize_api_request_with_params_as_vec(format!("search/user?q={query}").as_str(), params)
+        self.call_deserialize_api_request_as_vec(format!("search/user?q={query}&strict={strict}").as_str())
+    }
+
+    pub fn search_track(&self, track: &str, artist: &str, album: &str, strict: bool) -> Result<models::api::Track, DeezerError> {
+        let strict = match strict {
+            true => "on",
+            false => "off",
+        };
+        let searches: Vec<models::api::Track> = self.call_deserialize_api_request_as_vec(
+            format!(r#"search/track?q=track:"{track}" artist:"{artist}" album:"{album}"&strict={strict}"#).as_str(),
+        )?;
+        if let Some(_) = searches.get(0) {
+            return Ok(searches[0].to_owned());
+        }
+        let searches: Vec<models::api::Track> =
+            self.call_deserialize_api_request_as_vec(format!(r#"search/track?q=track:"{track}" artist:"{artist}"&strict={strict}"#).as_str())?;
+        if let Some(_) = searches.get(0) {
+            return Ok(searches[0].to_owned());
+        }
+        let searches: Vec<models::api::Track> =
+            self.call_deserialize_api_request_as_vec(format!(r#"search/track?q=track:"{track}"&strict={strict}"#).as_str())?;
+        if let Some(_) = searches.get(0) {
+            return Ok(searches[0].to_owned());
+        }
+        Err(DeezerError::ApiError("No Track Found".to_string()))
     }
 }

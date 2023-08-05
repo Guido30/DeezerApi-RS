@@ -245,6 +245,23 @@ fn test_search_user() {
 }
 
 #[test]
+fn test_search_track() {
+    let queries = [
+        ("Candy Shop", "50 Cent", "The Massacre"),
+        ("Starlight", "Muse", "Absolution"),
+        ("CASTLE OF GLASS", "OneRepublic", "Night Visions"),
+    ];
+    let deezer = Deezer::new();
+    let searches = vec![
+        deezer.search_track(queries[0].0, queries[0].1, queries[0].2, false),
+        deezer.search_track(queries[1].0, queries[1].1, queries[1].2, false),
+        deezer.search_track(queries[2].0, queries[2].1, queries[2].2, false),
+    ];
+    print_errors_for_items(&queries, &searches);
+    assert_eq!(searches.iter().all(Result::is_ok), true);
+}
+
+#[test]
 fn temporary() {
     let deezer = Deezer::new();
     let payload = deezer.gw_track(755330622).unwrap();
