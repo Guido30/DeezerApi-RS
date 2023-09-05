@@ -1,5 +1,5 @@
 [package]
-name = "DeezerApi-RS"
+name = "deezerapi-rs"
 version = "0.1.0"
 edition = "2021"
 
