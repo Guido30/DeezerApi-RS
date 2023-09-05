@@ -16,11 +16,10 @@ deezerapi-rs = { git = "https://github.com/Guido30/DeezerApi-RS.git", branch = "
 Initialize the Deezer object and call the api using one of the available methods
 
 ```rust
-use deezerapi-rs::Deezer;
+use deezerapi_rs::Deezer;
 
 let deezer = Deezer::new();
 let track = deezer.track(534534).unwrap();
-let track_title = ;
 println!("Track Title is: {}", track.title);
 ```
 
