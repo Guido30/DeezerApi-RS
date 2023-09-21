@@ -15,12 +15,28 @@ deezerapi-rs = { git = "https://github.com/Guido30/DeezerApi-RS.git", branch = "
 
 Initialize the Deezer object and call the api using one of the available methods
 
+With blocking calls
+
+```rust
+use deezerapi_rs::blocking::Deezer;
+
+fn main() {
+    let deezer = Deezer::new();
+    let track = deezer.track(534534).unwrap();
+    println!("Track Title is: {}", track.title);
+}
+```
+
+With async calls
+
 ```rust
 use deezerapi_rs::Deezer;
 
-let deezer = Deezer::new();
-let track = deezer.track(534534).unwrap();
-println!("Track Title is: {}", track.title);
+async fn main() {
+    let deezer = Deezer::new();
+    let track = deezer.track(534534).await.unwrap();
+    println!("Track Title is: {}", track.title);
+}
 ```
 
 All methods return a `Result<T, DeezerError>` where T is the deserialized json from deezer into a rust object, or DeezerError in case the request fails or the json can not be serialized into the expected value.  

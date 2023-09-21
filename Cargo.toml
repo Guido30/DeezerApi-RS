@@ -10,4 +10,6 @@ url = { version = "*" }
 reqwest = { version = "0.11.18", features = ["blocking", "cookies", "json"] }
 serde_json = { version = "1.0.104" }
 serde = { version = "1.0.180", features = ["derive"] }
+tokio = { version = "1.32.0", features = ["macros"] }
+async-recursion = { version = "1.0.5" }
 rand = { version = "0.8.5" }

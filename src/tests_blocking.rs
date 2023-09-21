@@ -1,4 +1,4 @@
-use crate::{Deezer, DeezerError};
+use crate::blocking::{Deezer, DeezerError};
 use std::fmt::Debug;
 
 pub fn print_errors_for_items<I: Debug, T: Debug>(
@@ -12,251 +12,251 @@ pub fn print_errors_for_items<I: Debug, T: Debug>(
     }
 }
 
-#[tokio::test]
-async fn refresh_token() {
+#[test]
+fn refresh_token() {
     let deezer = Deezer::new();
-    let token = deezer.refresh_token().await;
+    let token = deezer.refresh_token();
     assert_ne!(token, String::from("null"));
 }
 
-#[tokio::test]
-async fn test_track_from_isrc() {
+#[test]
+fn test_track_from_isrc() {
     let isrcs = ["TCAFP2196109", "GBUM71507634", "GBAYE0200771"];
     let deezer = Deezer::new();
     let tracks = vec![
-        deezer.track_from_isrc(isrcs[0]).await,
-        deezer.track_from_isrc(isrcs[1]).await,
-        deezer.track_from_isrc(isrcs[2]).await,
+        deezer.track_from_isrc(isrcs[0]),
+        deezer.track_from_isrc(isrcs[1]),
+        deezer.track_from_isrc(isrcs[2]),
     ];
     print_errors_for_items(&isrcs, &tracks);
     assert_eq!(tracks.iter().all(Result::is_ok), true);
 }
 
-#[tokio::test]
-async fn test_album_from_upc() {
+#[test]
+fn test_album_from_upc() {
     let upcs = [3700368446423, 634479384776, 707541948593];
     let deezer = Deezer::new();
     let albums = vec![
-        deezer.album_from_upc(upcs[0]).await,
-        deezer.album_from_upc(upcs[1]).await,
-        deezer.album_from_upc(upcs[2]).await,
+        deezer.album_from_upc(upcs[0]),
+        deezer.album_from_upc(upcs[1]),
+        deezer.album_from_upc(upcs[2]),
     ];
     print_errors_for_items(&upcs, &albums);
     assert_eq!(albums.iter().all(Result::is_ok), true);
 }
 
-#[tokio::test]
-async fn test_editorial() {
+#[test]
+fn test_editorial() {
     let deezer = Deezer::new();
-    let editorial = deezer.editorial().await;
+    let editorial = deezer.editorial();
     if let Err(ref error) = editorial {
         println!("Error {:?} ", error);
     }
     assert_eq!(editorial.is_ok(), true);
 }
 
-#[tokio::test]
-async fn test_editorial_from_genre() {
+#[test]
+fn test_editorial_from_genre() {
     let deezer = Deezer::new();
-    let editorial = deezer.editorial_from_genre(113).await;
+    let editorial = deezer.editorial_from_genre(113);
     if let Err(ref error) = editorial {
         println!("Error {:?} ", error);
     }
     assert_eq!(editorial.is_ok(), true);
 }
 
-#[tokio::test]
-async fn test_genres() {
+#[test]
+fn test_genres() {
     let deezer = Deezer::new();
-    let genres = deezer.genres().await;
+    let genres = deezer.genres();
     if let Err(ref error) = genres {
         println!("Error {:?} ", error);
     }
     assert_eq!(genres.is_ok(), true);
 }
 
-#[tokio::test]
-async fn test_genre() {
+#[test]
+fn test_genre() {
     let genre_ids = [0, 113, 152];
     let deezer = Deezer::new();
     let genres = vec![
-        deezer.genre(genre_ids[0]).await,
-        deezer.genre(genre_ids[1]).await,
-        deezer.genre(genre_ids[2]).await,
+        deezer.genre(genre_ids[0]),
+        deezer.genre(genre_ids[1]),
+        deezer.genre(genre_ids[2]),
     ];
     print_errors_for_items(&genre_ids, &genres);
     assert_eq!(genres.iter().all(Result::is_ok), true);
 }
 
-#[tokio::test]
-async fn test_genre_artists() {
+#[test]
+fn test_genre_artists() {
     let genre_ids = [0, 113, 152];
     let deezer = Deezer::new();
     let artists = vec![
-        deezer.genre_artists(genre_ids[0]).await,
-        deezer.genre_artists(genre_ids[1]).await,
-        deezer.genre_artists(genre_ids[2]).await,
+        deezer.genre_artists(genre_ids[0]),
+        deezer.genre_artists(genre_ids[1]),
+        deezer.genre_artists(genre_ids[2]),
     ];
     print_errors_for_items(&genre_ids, &artists);
     assert_eq!(artists.iter().all(Result::is_ok), true);
 }
 
-#[tokio::test]
-async fn test_genre_radio() {
+#[test]
+fn test_genre_radio() {
     let genre_ids = [0, 113, 152];
     let deezer = Deezer::new();
     let radios = vec![
-        deezer.genre_radios(genre_ids[0]).await,
-        deezer.genre_radios(genre_ids[1]).await,
-        deezer.genre_radios(genre_ids[2]).await,
+        deezer.genre_radios(genre_ids[0]),
+        deezer.genre_radios(genre_ids[1]),
+        deezer.genre_radios(genre_ids[2]),
     ];
     print_errors_for_items(&genre_ids, &radios);
     assert_eq!(radios.iter().all(Result::is_ok), true);
 }
 
-#[tokio::test]
-async fn test_infos() {
+#[test]
+fn test_infos() {
     let deezer = Deezer::new();
-    let genres = deezer.infos().await;
+    let genres = deezer.infos();
     if let Err(ref error) = genres {
         println!("Error {:?} ", error);
     }
     assert_eq!(genres.is_ok(), true);
 }
 
-#[tokio::test]
-async fn test_radios() {
+#[test]
+fn test_radios() {
     let deezer = Deezer::new();
-    let radios = deezer.radios().await;
+    let radios = deezer.radios();
     if let Err(ref error) = radios {
         println!("Error {:?} ", error);
     }
     assert_eq!(radios.is_ok(), true);
 }
 
-#[tokio::test]
-async fn test_radio() {
+#[test]
+fn test_radio() {
     let radio_ids = [6, 132, 37151];
     let deezer = Deezer::new();
     let radios = vec![
-        deezer.radio(radio_ids[0]).await,
-        deezer.radio(radio_ids[1]).await,
-        deezer.radio(radio_ids[2]).await,
+        deezer.radio(radio_ids[0]),
+        deezer.radio(radio_ids[1]),
+        deezer.radio(radio_ids[2]),
     ];
     print_errors_for_items(&radio_ids, &radios);
     assert_eq!(radios.iter().all(Result::is_ok), true);
 }
 
-#[tokio::test]
-async fn test_radio_tracks() {
+#[test]
+fn test_radio_tracks() {
     let radio_ids = [6, 132, 37151];
     let deezer = Deezer::new();
     let radios = vec![
-        deezer.radio_tracks(radio_ids[0]).await,
-        deezer.radio_tracks(radio_ids[1]).await,
-        deezer.radio_tracks(radio_ids[2]).await,
+        deezer.radio_tracks(radio_ids[0]),
+        deezer.radio_tracks(radio_ids[1]),
+        deezer.radio_tracks(radio_ids[2]),
     ];
     print_errors_for_items(&radio_ids, &radios);
     assert_eq!(radios.iter().all(Result::is_ok), true);
 }
 
-#[tokio::test]
-async fn test_radio_genres() {
+#[test]
+fn test_radio_genres() {
     let deezer = Deezer::new();
-    let radios = deezer.radio_genres().await;
+    let radios = deezer.radio_genres();
     if let Err(ref error) = radios {
         println!("Error {:?} ", error);
     }
     assert_eq!(radios.is_ok(), true);
 }
 
-#[tokio::test]
-async fn test_radio_top() {
+#[test]
+fn test_radio_top() {
     let deezer = Deezer::new();
-    let radios = deezer.radio_top().await;
+    let radios = deezer.radio_top();
     if let Err(ref error) = radios {
         println!("Error {:?} ", error);
     }
     assert_eq!(radios.is_ok(), true);
 }
 
-#[tokio::test]
-async fn test_radio_lists() {
+#[test]
+fn test_radio_lists() {
     let deezer = Deezer::new();
-    let radios = deezer.radio_lists().await;
+    let radios = deezer.radio_lists();
     if let Err(ref error) = radios {
         println!("Error {:?} ", error);
     }
     assert_eq!(radios.is_ok(), true);
 }
 
-#[tokio::test]
-async fn test_search() {
+#[test]
+fn test_search() {
     let queries = ["Hans Zimmer", "OneRepublic", "Eric Prydz"];
     let deezer = Deezer::new();
     let searches = vec![
-        deezer.search(queries[0], false).await,
-        deezer.search(queries[1], false).await,
-        deezer.search(queries[2], false).await,
+        deezer.search(queries[0], false),
+        deezer.search(queries[1], false),
+        deezer.search(queries[2], false),
     ];
     print_errors_for_items(&queries, &searches);
     assert_eq!(searches.iter().all(Result::is_ok), true);
 }
 
-#[tokio::test]
-async fn test_search_album() {
+#[test]
+fn test_search_album() {
     let queries = ["Hans Zimmer", "OneRepublic", "Eric Prydz"];
     let deezer = Deezer::new();
     let searches = vec![
-        deezer.search_album(queries[0], false).await,
-        deezer.search_album(queries[1], false).await,
-        deezer.search_album(queries[2], false).await,
+        deezer.search_album(queries[0], false),
+        deezer.search_album(queries[1], false),
+        deezer.search_album(queries[2], false),
     ];
     print_errors_for_items(&queries, &searches);
     assert_eq!(searches.iter().all(Result::is_ok), true);
 }
 
-#[tokio::test]
-async fn test_search_artist() {
+#[test]
+fn test_search_artist() {
     let queries = ["Hans Zimmer", "OneRepublic", "Eric Prydz"];
     let deezer = Deezer::new();
     let searches = vec![
-        deezer.search_artist(queries[0], false).await,
-        deezer.search_artist(queries[1], false).await,
-        deezer.search_artist(queries[2], false).await,
+        deezer.search_artist(queries[0], false),
+        deezer.search_artist(queries[1], false),
+        deezer.search_artist(queries[2], false),
     ];
     print_errors_for_items(&queries, &searches);
     assert_eq!(searches.iter().all(Result::is_ok), true);
 }
 
-#[tokio::test]
-async fn test_search_playlist() {
+#[test]
+fn test_search_playlist() {
     let queries = ["Hans Zimmer", "OneRepublic", "Eric Prydz"];
     let deezer = Deezer::new();
     let searches = vec![
-        deezer.search_playlist(queries[0], false).await,
-        deezer.search_playlist(queries[1], false).await,
-        deezer.search_playlist(queries[2], false).await,
+        deezer.search_playlist(queries[0], false),
+        deezer.search_playlist(queries[1], false),
+        deezer.search_playlist(queries[2], false),
     ];
     print_errors_for_items(&queries, &searches);
     assert_eq!(searches.iter().all(Result::is_ok), true);
 }
 
-#[tokio::test]
-async fn test_search_user() {
+#[test]
+fn test_search_user() {
     let queries = ["Hans Zimmer", "OneRepublic", "Eric Prydz"];
     let deezer = Deezer::new();
     let searches = vec![
-        deezer.search_user(queries[0], false).await,
-        deezer.search_user(queries[1], false).await,
-        deezer.search_user(queries[2], false).await,
+        deezer.search_user(queries[0], false),
+        deezer.search_user(queries[1], false),
+        deezer.search_user(queries[2], false),
     ];
     print_errors_for_items(&queries, &searches);
     assert_eq!(searches.iter().all(Result::is_ok), true);
 }
 
-#[tokio::test]
-async fn test_search_track() {
+#[test]
+fn test_search_track() {
     let queries = [
         ("Candy Shop", "50 Cent", "The Massacre"),
         ("Starlight", "Muse", "Absolution"),
@@ -264,15 +264,9 @@ async fn test_search_track() {
     ];
     let deezer = Deezer::new();
     let searches = vec![
-        deezer
-            .search_track(queries[0].0, queries[0].1, queries[0].2, false)
-            .await,
-        deezer
-            .search_track(queries[1].0, queries[1].1, queries[1].2, false)
-            .await,
-        deezer
-            .search_track(queries[2].0, queries[2].1, queries[2].2, false)
-            .await,
+        deezer.search_track(queries[0].0, queries[0].1, queries[0].2, false),
+        deezer.search_track(queries[1].0, queries[1].1, queries[1].2, false),
+        deezer.search_track(queries[2].0, queries[2].1, queries[2].2, false),
     ];
     print_errors_for_items(&queries, &searches);
     assert_eq!(searches.iter().all(Result::is_ok), true);

@@ -1,7 +1,6 @@
-use async_recursion::async_recursion;
+use reqwest::blocking::{Client, Response};
 use reqwest::header::{HeaderValue, ACCEPT_LANGUAGE, USER_AGENT};
 use reqwest::{header, Error as RequestError, Url};
-use reqwest::{Client, Response};
 use serde::de::DeserializeOwned;
 use serde_json::{json, Error as JsonError, Value};
 use std::cell::RefCell;
@@ -9,21 +8,8 @@ use std::collections::HashMap;
 use std::time::Duration;
 use url::ParseError;
 
-#[allow(dead_code)]
-mod blocking;
-
-mod models;
-
-#[cfg(test)]
-mod tests;
-#[cfg(test)]
-mod tests_blocking;
-#[cfg(test)]
-mod tests_random_blocking;
-
-const GW_API_URL: &str = "http://www.deezer.com/ajax/gw-light.php";
-const API_URL: &str = "https://api.deezer.com/";
-const USER_AGENT_HEADER: &str = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.5790.111 Safari/537.36";
+use crate::models;
+use crate::{API_URL, GW_API_URL, USER_AGENT_HEADER};
 
 #[derive(Debug, Clone)]
 pub struct Deezer {
@@ -39,10 +25,8 @@ pub enum DeezerError {
     ParseError(ParseError),
 }
 
-async fn parse_response_to_value(
-    response: Response,
-) -> Result<Value, DeezerError> {
-    let body = match response.text().await {
+fn parse_response_to_value(response: Response) -> Result<Value, DeezerError> {
+    let body = match response.text() {
         Ok(v) => v,
         Err(err) => return Err(DeezerError::RequestError(err)),
     };
@@ -80,12 +64,11 @@ impl Deezer {
         }
     }
 
-    #[async_recursion(?Send)]
-    pub async fn refresh_token(&self) -> String {
+    pub fn refresh_token(&self) -> String {
         let empty_token = String::from("null");
-        let response = self.gw_method_call("deezer.getUserData").await;
+        let response = self.gw_method_call("deezer.getUserData");
         match response {
-            Ok(resp) => match resp.text().await {
+            Ok(resp) => match resp.text() {
                 Ok(body) => match serde_json::from_str(body.as_str())
                     as Result<Value, JsonError>
                 {
@@ -105,7 +88,7 @@ impl Deezer {
         }
     }
 
-    async fn method_call(&self, path: &str) -> Result<Response, DeezerError> {
+    fn method_call(&self, path: &str) -> Result<Response, DeezerError> {
         let mut url = match Url::parse(API_URL) {
             Ok(base_url) => match base_url.join(path) {
                 Ok(url) => url,
@@ -123,21 +106,18 @@ impl Deezer {
         url.query_pairs_mut()
             .clear()
             .extend_pairs(params.into_iter());
-        let response = self.client.get(url).send().await;
+        let response = self.client.get(url).send();
         match response {
             Ok(r) => Ok(r),
             Err(error) => Err(DeezerError::RequestError(error)),
         }
     }
 
-    async fn gw_method_call(
-        &self,
-        method: &str,
-    ) -> Result<Response, RequestError> {
+    fn gw_method_call(&self, method: &str) -> Result<Response, RequestError> {
         if self.token.borrow().to_string() == "null"
             && !(method == "deezer.getUserData")
         {
-            self.refresh_token().await;
+            self.refresh_token();
         }
 
         let api_token = match method {
@@ -151,12 +131,11 @@ impl Deezer {
         params.insert("method", method.to_owned());
         params.insert("input", params.len().to_string());
 
-        let response =
-            self.client.post(GW_API_URL).form(&params).send().await?;
+        let response = self.client.post(GW_API_URL).form(&params).send()?;
         Ok(response)
     }
 
-    async fn gw_method_call_params(
+    fn gw_method_call_params(
         &self,
         method: &str,
         params: HashMap<&str, String>,
@@ -164,7 +143,7 @@ impl Deezer {
         if self.token.borrow().to_string() == "null"
             && !(method == "deezer.getUserData")
         {
-            self.refresh_token().await;
+            self.refresh_token();
         }
 
         let api_token = match method {
@@ -178,12 +157,11 @@ impl Deezer {
         params.insert("method", method.to_owned());
         params.insert("input", params.len().to_string());
 
-        let response =
-            self.client.post(GW_API_URL).form(&params).send().await?;
+        let response = self.client.post(GW_API_URL).form(&params).send()?;
         Ok(response)
     }
 
-    async fn gw_method_call_body(
+    fn gw_method_call_body(
         &self,
         method: &str,
         body: &Value,
@@ -191,7 +169,7 @@ impl Deezer {
         if self.token.borrow().to_string() == "null"
             && !(method == "deezer.getUserData")
         {
-            self.refresh_token().await;
+            self.refresh_token();
         }
 
         let api_token = match method {
@@ -207,49 +185,48 @@ impl Deezer {
 
         let url = Url::parse_with_params(GW_API_URL, params).unwrap();
 
-        let response = self.client.post(url).json(body).send().await?;
+        let response = self.client.post(url).json(body).send()?;
         Ok(response)
     }
 
-    async fn call_deserialize_gw_request_with_params<T: DeserializeOwned>(
+    fn call_deserialize_gw_request_with_params<T: DeserializeOwned>(
         &self,
         method: &str,
         params: HashMap<&str, String>,
     ) -> Result<T, DeezerError> {
         let response: Response =
-            match self.gw_method_call_params(method, params).await {
+            match self.gw_method_call_params(method, params) {
                 Ok(r) => r,
                 Err(err) => return Err(DeezerError::RequestError(err)),
             };
-        let value: Value = parse_response_to_value(response).await?;
+        let value: Value = parse_response_to_value(response)?;
         match serde_json::from_value(value["results"].clone()) {
             Ok(v) => Ok(v),
             Err(err) => return Err(DeezerError::JsonError(err)),
         }
     }
 
-    async fn call_deserialize_api_request<T: DeserializeOwned>(
+    fn call_deserialize_api_request<T: DeserializeOwned>(
         &self,
         url_path: &str,
     ) -> Result<T, DeezerError> {
-        let response: Response = self.method_call(url_path).await?;
-        let value: Value = parse_response_to_value(response).await?;
+        let response: Response = self.method_call(url_path)?;
+        let value: Value = parse_response_to_value(response)?;
         match serde_json::from_value(value) {
             Ok(v) => Ok(v),
             Err(err) => return Err(DeezerError::JsonError(err)),
         }
     }
 
-    async fn call_deserialize_api_request_as_vec<T: DeserializeOwned>(
+    fn call_deserialize_api_request_as_vec<T: DeserializeOwned>(
         &self,
         url_path: &str,
     ) -> Result<Vec<T>, DeezerError> {
         let mut objects: Vec<T> = Vec::new();
         let mut url_path = url_path.to_string();
         loop {
-            let response: Response =
-                self.method_call(url_path.as_str()).await?;
-            let value: Value = parse_response_to_value(response).await?;
+            let response: Response = self.method_call(url_path.as_str())?;
+            let value: Value = parse_response_to_value(response)?;
             let result: Vec<T> =
                 match serde_json::from_value(value["data"].clone()) {
                     Ok(v) => v,
@@ -268,44 +245,42 @@ impl Deezer {
         Ok(objects)
     }
 
-    pub async fn gw_track(
+    pub fn gw_track(
         &self,
         song_id: u64,
     ) -> Result<models::gw::TrackData, DeezerError> {
         let params: HashMap<&str, String> =
             [("sng_id", song_id.to_string())].into();
         self.call_deserialize_gw_request_with_params("deezer.pageTrack", params)
-            .await
     }
 
-    pub async fn gw_song(
+    pub fn gw_song(
         &self,
         song_id: u64,
     ) -> Result<models::gw::Song, DeezerError> {
         let params: HashMap<&str, String> =
             [("sng_id", song_id.to_string())].into();
         self.call_deserialize_gw_request_with_params("song.getData", params)
-            .await
     }
 
-    pub async fn gw_songs(
+    pub fn gw_songs(
         &self,
         song_ids: &Vec<u64>,
     ) -> Result<models::gw::SongListData, DeezerError> {
         let body: Value = json!({"sng_ids": song_ids});
         let response: Response =
-            match self.gw_method_call_body("song.getListData", &body).await {
+            match self.gw_method_call_body("song.getListData", &body) {
                 Ok(r) => r,
                 Err(err) => return Err(DeezerError::RequestError(err)),
             };
-        let value: Value = parse_response_to_value(response).await?;
+        let value: Value = parse_response_to_value(response)?;
         match serde_json::from_value(value["results"].clone()) {
             Ok(songs) => Ok(songs),
             Err(err) => return Err(DeezerError::JsonError(err)),
         }
     }
 
-    pub async fn gw_songs_from_album(
+    pub fn gw_songs_from_album(
         &self,
         album_id: u64,
     ) -> Result<models::gw::SongListData, DeezerError> {
@@ -315,27 +290,24 @@ impl Deezer {
             "song.getListByAlbum",
             params,
         )
-        .await
     }
 
-    pub async fn gw_album(
+    pub fn gw_album(
         &self,
         album_id: u64,
     ) -> Result<models::gw::Album, DeezerError> {
         let params: HashMap<&str, String> =
             [("alb_id", album_id.to_string())].into();
         self.call_deserialize_gw_request_with_params("album.getData", params)
-            .await
     }
 
-    pub async fn gw_lyrics(
+    pub fn gw_lyrics(
         &self,
         song_id: u64,
     ) -> Result<models::gw::Lyrics, DeezerError> {
         let params: HashMap<&str, String> =
             [("sng_id", song_id.to_string())].into();
         self.call_deserialize_gw_request_with_params("song.getLyrics", params)
-            .await
     }
 
     // TODO payload is huge, models need to be implemented to match returned json, and takes a lot of time
@@ -353,213 +325,188 @@ impl Deezer {
     //     Ok(track)
     // }
 
-    pub async fn track(
+    pub fn track(
         &self,
         song_id: u64,
     ) -> Result<models::api::MainTrack, DeezerError> {
         self.call_deserialize_api_request(format!("track/{}", song_id).as_str())
-            .await
     }
 
-    pub async fn track_from_isrc(
+    pub fn track_from_isrc(
         &self,
         isrc: &str,
     ) -> Result<models::api::MainTrack, DeezerError> {
         self.call_deserialize_api_request(
             format!("track/isrc:{}", isrc).as_str(),
         )
-        .await
     }
 
-    pub async fn album(
+    pub fn album(
         &self,
         album_id: u64,
     ) -> Result<models::api::MainAlbum, DeezerError> {
         self.call_deserialize_api_request(
             format!("album/{}", album_id).as_str(),
         )
-        .await
     }
 
-    pub async fn album_from_upc(
+    pub fn album_from_upc(
         &self,
         upc: u64,
     ) -> Result<models::api::MainAlbum, DeezerError> {
         self.call_deserialize_api_request(format!("album/upc:{}", upc).as_str())
-            .await
     }
 
-    pub async fn album_tracks(
+    pub fn album_tracks(
         &self,
         album_id: u64,
     ) -> Result<Vec<models::api::Track>, DeezerError> {
         self.call_deserialize_api_request_as_vec(
             format!("album/{}/tracks", album_id).as_str(),
         )
-        .await
     }
 
-    pub async fn artist(
+    pub fn artist(
         &self,
         artist_id: u64,
     ) -> Result<models::api::Artist, DeezerError> {
         self.call_deserialize_api_request(
             format!("artist/{}", artist_id).as_str(),
         )
-        .await
     }
 
-    pub async fn artist_albums(
+    pub fn artist_albums(
         &self,
         artist_id: u64,
     ) -> Result<Vec<models::api::Album>, DeezerError> {
         self.call_deserialize_api_request_as_vec(
             format!("artist/{}/albums", artist_id).as_str(),
         )
-        .await
     }
 
-    pub async fn artist_top_tracks(
+    pub fn artist_top_tracks(
         &self,
         artist_id: u64,
     ) -> Result<Vec<models::api::Track>, DeezerError> {
         self.call_deserialize_api_request_as_vec(
             format!("artist/{}/top", artist_id).as_str(),
         )
-        .await
     }
 
-    pub async fn artist_related_artists(
+    pub fn artist_related_artists(
         &self,
         artist_id: u64,
     ) -> Result<Vec<models::api::RelatedArtist>, DeezerError> {
         self.call_deserialize_api_request_as_vec(
             format!("artist/{}/related", artist_id).as_str(),
         )
-        .await
     }
 
-    pub async fn artist_radio(
+    pub fn artist_radio(
         &self,
         artist_id: u64,
     ) -> Result<Vec<models::api::Track>, DeezerError> {
         self.call_deserialize_api_request_as_vec(
             format!("artist/{}/radio", artist_id).as_str(),
         )
-        .await
     }
 
-    pub async fn artist_playlists(
+    pub fn artist_playlists(
         &self,
         artist_id: u64,
     ) -> Result<Vec<models::api::Playlist>, DeezerError> {
         self.call_deserialize_api_request_as_vec(
             format!("artist/{}/playlists", artist_id).as_str(),
         )
-        .await
     }
 
-    pub async fn editorial(
+    pub fn editorial(
         &self,
     ) -> Result<Vec<models::api::Editorial>, DeezerError> {
-        self.call_deserialize_api_request_as_vec("editorial").await
+        self.call_deserialize_api_request_as_vec("editorial")
     }
 
-    pub async fn editorial_from_genre(
+    pub fn editorial_from_genre(
         &self,
         genre_id: u64,
     ) -> Result<models::api::Editorial, DeezerError> {
         self.call_deserialize_api_request(
             format!("editorial/{}", genre_id).as_str(),
         )
-        .await
     }
 
-    pub async fn genres(
-        &self,
-    ) -> Result<Vec<models::api::Editorial>, DeezerError> {
-        self.call_deserialize_api_request_as_vec("genre").await
+    pub fn genres(&self) -> Result<Vec<models::api::Editorial>, DeezerError> {
+        self.call_deserialize_api_request_as_vec("genre")
     }
 
-    pub async fn genre(
+    pub fn genre(
         &self,
         genre_id: u64,
     ) -> Result<models::api::Editorial, DeezerError> {
         self.call_deserialize_api_request(
             format!("genre/{}", genre_id).as_str(),
         )
-        .await
     }
 
-    pub async fn genre_artists(
+    pub fn genre_artists(
         &self,
         genre_id: u64,
     ) -> Result<Vec<models::api::Artist>, DeezerError> {
         self.call_deserialize_api_request_as_vec(
             format!("genre/{}/artists", genre_id).as_str(),
         )
-        .await
     }
 
-    pub async fn genre_radios(
+    pub fn genre_radios(
         &self,
         genre_id: u64,
     ) -> Result<Vec<models::api::Radio>, DeezerError> {
         self.call_deserialize_api_request_as_vec(
             format!("genre/{}/radios", genre_id).as_str(),
         )
-        .await
     }
 
-    pub async fn infos(&self) -> Result<models::api::Info, DeezerError> {
-        self.call_deserialize_api_request("infos").await
+    pub fn infos(&self) -> Result<models::api::Info, DeezerError> {
+        self.call_deserialize_api_request("infos")
     }
 
-    pub async fn radios(&self) -> Result<Vec<models::api::Radio>, DeezerError> {
-        self.call_deserialize_api_request_as_vec("radio").await
+    pub fn radios(&self) -> Result<Vec<models::api::Radio>, DeezerError> {
+        self.call_deserialize_api_request_as_vec("radio")
     }
 
-    pub async fn radio(
+    pub fn radio(
         &self,
         radio_id: u64,
     ) -> Result<models::api::Radio, DeezerError> {
         self.call_deserialize_api_request(
             format!("radio/{}", radio_id).as_str(),
         )
-        .await
     }
 
-    pub async fn radio_tracks(
+    pub fn radio_tracks(
         &self,
         radio_id: u64,
     ) -> Result<Vec<models::api::Track>, DeezerError> {
         self.call_deserialize_api_request_as_vec(
             format!("radio/{}/tracks", radio_id).as_str(),
         )
-        .await
     }
 
-    pub async fn radio_genres(
+    pub fn radio_genres(
         &self,
     ) -> Result<Vec<models::api::GenreRadios>, DeezerError> {
         self.call_deserialize_api_request_as_vec("radio/genres")
-            .await
     }
 
-    pub async fn radio_top(
-        &self,
-    ) -> Result<Vec<models::api::Radio>, DeezerError> {
-        self.call_deserialize_api_request_as_vec("radio/top").await
+    pub fn radio_top(&self) -> Result<Vec<models::api::Radio>, DeezerError> {
+        self.call_deserialize_api_request_as_vec("radio/top")
     }
 
-    pub async fn radio_lists(
-        &self,
-    ) -> Result<Vec<models::api::Radio>, DeezerError> {
+    pub fn radio_lists(&self) -> Result<Vec<models::api::Radio>, DeezerError> {
         self.call_deserialize_api_request_as_vec("radio/lists")
-            .await
     }
 
-    pub async fn search(
+    pub fn search(
         &self,
         query: &str,
         strict: bool,
@@ -571,10 +518,9 @@ impl Deezer {
         self.call_deserialize_api_request_as_vec(
             format!("search?q={query}&strict={strict}").as_str(),
         )
-        .await
     }
 
-    pub async fn search_album(
+    pub fn search_album(
         &self,
         query: &str,
         strict: bool,
@@ -586,10 +532,9 @@ impl Deezer {
         self.call_deserialize_api_request_as_vec(
             format!("search/album?q={query}&strict={strict}").as_str(),
         )
-        .await
     }
 
-    pub async fn search_artist(
+    pub fn search_artist(
         &self,
         query: &str,
         strict: bool,
@@ -601,10 +546,9 @@ impl Deezer {
         self.call_deserialize_api_request_as_vec(
             format!("search/artist?q={query}&strict={strict}").as_str(),
         )
-        .await
     }
 
-    pub async fn search_playlist(
+    pub fn search_playlist(
         &self,
         query: &str,
         strict: bool,
@@ -616,10 +560,9 @@ impl Deezer {
         self.call_deserialize_api_request_as_vec(
             format!("search/playlist?q={query}&strict={strict}").as_str(),
         )
-        .await
     }
 
-    pub async fn search_user(
+    pub fn search_user(
         &self,
         query: &str,
         strict: bool,
@@ -631,10 +574,9 @@ impl Deezer {
         self.call_deserialize_api_request_as_vec(
             format!("search/user?q={query}&strict={strict}").as_str(),
         )
-        .await
     }
 
-    pub async fn search_track(
+    pub fn search_track(
         &self,
         track: &str,
         artist: &str,
@@ -647,12 +589,12 @@ impl Deezer {
         };
         let searches: Vec<models::api::Track> = self.call_deserialize_api_request_as_vec(
             format!(r#"search/track?q=track:"{track}" artist:"{artist}" album:"{album}"&strict={strict}"#).as_str(),
-        ).await?;
+        )?;
         if let Some(_) = searches.get(0) {
             return Ok(searches[0].to_owned());
         }
         let searches: Vec<models::api::Track> =
-            self.call_deserialize_api_request_as_vec(format!(r#"search/track?q=track:"{track}" artist:"{artist}"&strict={strict}"#).as_str()).await?;
+            self.call_deserialize_api_request_as_vec(format!(r#"search/track?q=track:"{track}" artist:"{artist}"&strict={strict}"#).as_str())?;
         if let Some(_) = searches.get(0) {
             return Ok(searches[0].to_owned());
         }
@@ -660,8 +602,7 @@ impl Deezer {
             .call_deserialize_api_request_as_vec(
                 format!(r#"search/track?q=track:"{track}"&strict={strict}"#)
                     .as_str(),
-            )
-            .await?;
+            )?;
         if let Some(_) = searches.get(0) {
             return Ok(searches[0].to_owned());
         }

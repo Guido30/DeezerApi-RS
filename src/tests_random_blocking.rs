@@ -1,5 +1,5 @@
-use crate::tests::print_errors_for_items;
-use crate::Deezer;
+use crate::blocking::Deezer;
+use crate::tests_blocking::print_errors_for_items;
 use rand::distributions::uniform::SampleRange;
 use rand::Rng;
 
