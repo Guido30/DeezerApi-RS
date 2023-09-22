@@ -20,6 +20,95 @@ async fn refresh_token() {
 }
 
 #[tokio::test]
+async fn test_gw_track() {
+    let track_ids = [1141668, 64555665, 88765665];
+    let deezer = Deezer::new();
+    let tracks = vec![
+        deezer.gw_track(track_ids[0]).await,
+        deezer.gw_track(track_ids[1]).await,
+        deezer.gw_track(track_ids[2]).await,
+    ];
+    print_errors_for_items(&track_ids, &tracks);
+    assert_eq!(tracks.iter().all(Result::is_ok), true);
+}
+
+#[tokio::test]
+async fn test_gw_song() {
+    let song_ids = [354344, 3545446, 4363245];
+    let deezer = Deezer::new();
+    let songs = vec![
+        deezer.gw_song(song_ids[0]).await,
+        deezer.gw_song(song_ids[1]).await,
+        deezer.gw_song(song_ids[2]).await,
+    ];
+    print_errors_for_items(&song_ids, &songs);
+    assert_eq!(songs.iter().all(Result::is_ok), true);
+}
+
+#[tokio::test]
+async fn test_gw_songs() {
+    let song_ids = vec![354344, 3545446, 4363245];
+    let deezer = Deezer::new();
+    let songs = deezer.gw_songs(&song_ids).await;
+    if let Err(ref error) = songs {
+        println!("Error {:?} ", error);
+    }
+    assert_eq!(songs.is_ok(), true);
+}
+
+#[tokio::test]
+async fn test_gw_songs_from_album() {
+    let album_ids = [122366, 4535, 6566665];
+    let deezer = Deezer::new();
+    let album_songs = vec![
+        deezer.gw_songs_from_album(album_ids[0]).await,
+        deezer.gw_songs_from_album(album_ids[1]).await,
+        deezer.gw_songs_from_album(album_ids[2]).await,
+    ];
+    print_errors_for_items(&album_ids, &album_songs);
+    assert_eq!(album_songs.iter().all(Result::is_ok), true);
+}
+
+#[tokio::test]
+async fn test_gw_album() {
+    let album_ids = [122366, 4535, 6566665];
+    let deezer = Deezer::new();
+    let albums = vec![
+        deezer.gw_album(album_ids[0]).await,
+        deezer.gw_album(album_ids[1]).await,
+        deezer.gw_album(album_ids[2]).await,
+    ];
+    print_errors_for_items(&album_ids, &albums);
+    assert_eq!(albums.iter().all(Result::is_ok), true);
+}
+
+#[tokio::test]
+async fn test_gw_lyrics() {
+    let song_ids = [1141668, 3443212, 87766453];
+    let deezer = Deezer::new();
+    let lyrics = vec![
+        deezer.gw_lyrics(song_ids[0]).await,
+        deezer.gw_lyrics(song_ids[1]).await,
+        deezer.gw_lyrics(song_ids[2]).await,
+    ];
+    print_errors_for_items(&song_ids, &lyrics);
+    assert_eq!(lyrics.iter().all(Result::is_ok), true);
+}
+
+#[tokio::test]
+async fn test_track() {
+    let track_ids = [1141668, 64555665, 88765665];
+    let deezer = Deezer::new();
+    let tracks = vec![
+        deezer.track(track_ids[0]).await,
+        deezer.track(track_ids[1]).await,
+        deezer.track(track_ids[2]).await,
+    ];
+    print_errors_for_items(&track_ids, &tracks);
+    assert_eq!(tracks.iter().all(Result::is_ok), true);
+}
+
+#[tokio::test]
 async fn test_track_from_isrc() {
     let isrcs = ["TCAFP2196109", "GBUM71507634", "GBAYE0200771"];
     let deezer = Deezer::new();
@@ -30,6 +119,19 @@ async fn test_track_from_isrc() {
     ];
     print_errors_for_items(&isrcs, &tracks);
     assert_eq!(tracks.iter().all(Result::is_ok), true);
+}
+
+#[tokio::test]
+async fn test_album() {
+    let album_ids = [122366, 6545543, 6566665];
+    let deezer = Deezer::new();
+    let albums = vec![
+        deezer.album(album_ids[0]).await,
+        deezer.album(album_ids[1]).await,
+        deezer.album(album_ids[2]).await,
+    ];
+    print_errors_for_items(&album_ids, &albums);
+    assert_eq!(albums.iter().all(Result::is_ok), true);
 }
 
 #[tokio::test]

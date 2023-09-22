@@ -3,8 +3,8 @@ use reqwest::header::{HeaderValue, ACCEPT_LANGUAGE, USER_AGENT};
 use reqwest::{header, Error as RequestError, Url};
 use serde::de::DeserializeOwned;
 use serde_json::{json, Error as JsonError, Value};
-use std::cell::RefCell;
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use url::ParseError;
 
@@ -14,7 +14,7 @@ use crate::{API_URL, GW_API_URL, USER_AGENT_HEADER};
 #[derive(Debug, Clone)]
 pub struct Deezer {
     client: Client,
-    token: RefCell<String>,
+    token: Arc<Mutex<String>>,
 }
 
 #[derive(Debug)]
@@ -60,7 +60,7 @@ impl Deezer {
 
         Self {
             client,
-            token: RefCell::from(String::from("null")),
+            token: Arc::new(Mutex::new(String::from("null"))),
         }
     }
 
@@ -73,10 +73,11 @@ impl Deezer {
                     as Result<Value, JsonError>
                 {
                     Ok(value) => match value["results"]["checkForm"].as_str() {
-                        Some(token) => {
-                            let token = token.to_owned();
-                            self.token.replace(token.clone());
-                            token
+                        Some(new_token) => {
+                            let new_token = new_token.to_owned();
+                            let mut token = self.token.lock().unwrap();
+                            *token = new_token.clone();
+                            new_token
                         }
                         None => empty_token,
                     },
@@ -114,15 +115,15 @@ impl Deezer {
     }
 
     fn gw_method_call(&self, method: &str) -> Result<Response, RequestError> {
-        if self.token.borrow().to_string() == "null"
-            && !(method == "deezer.getUserData")
-        {
+        let mut token = self.token.lock().unwrap().to_owned();
+        if token == "null" && !(method == "deezer.getUserData") {
             self.refresh_token();
+            token = self.token.lock().unwrap().to_owned();
         }
 
         let api_token = match method {
             "deezer.getUserData" => "null".to_owned(),
-            _ => self.token.borrow().to_string(),
+            _ => token,
         };
 
         let mut params = HashMap::new();
@@ -140,15 +141,15 @@ impl Deezer {
         method: &str,
         params: HashMap<&str, String>,
     ) -> Result<Response, RequestError> {
-        if self.token.borrow().to_string() == "null"
-            && !(method == "deezer.getUserData")
-        {
+        let mut token = self.token.lock().unwrap().to_owned();
+        if token == "null" && !(method == "deezer.getUserData") {
             self.refresh_token();
+            token = self.token.lock().unwrap().to_owned();
         }
 
         let api_token = match method {
             "deezer.getUserData" => "null".to_owned(),
-            _ => self.token.borrow().to_string(),
+            _ => token,
         };
 
         let mut params = params.clone();
@@ -166,15 +167,15 @@ impl Deezer {
         method: &str,
         body: &Value,
     ) -> Result<Response, RequestError> {
-        if self.token.borrow().to_string() == "null"
-            && !(method == "deezer.getUserData")
-        {
+        let mut token = self.token.lock().unwrap().to_owned();
+        if token == "null" && !(method == "deezer.getUserData") {
             self.refresh_token();
+            token = self.token.lock().unwrap().to_owned();
         }
 
         let api_token = match method {
             "deezer.getUserData" => "null".to_owned(),
-            _ => self.token.borrow().to_string(),
+            _ => token,
         };
 
         let mut params = HashMap::new();
