@@ -5,14 +5,15 @@ use reqwest::{Client, Response};
 use serde::de::DeserializeOwned;
 use serde_json::{json, Error as JsonError, Value};
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::time::Duration;
+use tokio::sync::Mutex;
 use url::ParseError;
 
 #[allow(dead_code)]
-mod blocking;
+pub mod blocking;
 
-mod models;
+pub mod models;
 
 #[cfg(test)]
 mod tests;
@@ -80,7 +81,7 @@ impl Deezer {
         }
     }
 
-    #[async_recursion(?Send)]
+    #[async_recursion]
     pub async fn refresh_token(&self) -> String {
         let empty_token = String::from("null");
         let response = self.gw_method_call("deezer.getUserData").await;
@@ -92,7 +93,7 @@ impl Deezer {
                     Ok(value) => match value["results"]["checkForm"].as_str() {
                         Some(new_token) => {
                             let new_token = new_token.to_owned();
-                            let mut token = self.token.lock().unwrap();
+                            let mut token = self.token.lock().await;
                             *token = new_token.clone();
                             new_token
                         }
@@ -135,10 +136,10 @@ impl Deezer {
         &self,
         method: &str,
     ) -> Result<Response, RequestError> {
-        let mut token = self.token.lock().unwrap().to_owned();
+        let mut token = self.token.lock().await.to_owned();
         if token == "null" && !(method == "deezer.getUserData") {
             self.refresh_token().await;
-            token = self.token.lock().unwrap().to_owned();
+            token = self.token.lock().await.to_owned();
         }
 
         let api_token = match method {
@@ -162,10 +163,10 @@ impl Deezer {
         method: &str,
         params: HashMap<&str, String>,
     ) -> Result<Response, RequestError> {
-        let mut token = self.token.lock().unwrap().to_owned();
+        let mut token = self.token.lock().await.to_owned();
         if token == "null" && !(method == "deezer.getUserData") {
             self.refresh_token().await;
-            token = self.token.lock().unwrap().to_owned();
+            token = self.token.lock().await.to_owned();
         }
 
         let api_token = match method {
@@ -189,10 +190,10 @@ impl Deezer {
         method: &str,
         body: &Value,
     ) -> Result<Response, RequestError> {
-        let mut token = self.token.lock().unwrap().to_owned();
+        let mut token = self.token.lock().await.to_owned();
         if token == "null" && !(method == "deezer.getUserData") {
             self.refresh_token().await;
-            token = self.token.lock().unwrap().to_owned();
+            token = self.token.lock().await.to_owned();
         }
 
         let api_token = match method {
