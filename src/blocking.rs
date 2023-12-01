@@ -11,7 +11,7 @@ use url::ParseError;
 use crate::models;
 use crate::{API_URL, GW_API_URL, USER_AGENT_HEADER};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Deezer {
     client: Client,
     token: Arc<Mutex<String>>,

@@ -26,7 +26,7 @@ const GW_API_URL: &str = "http://www.deezer.com/ajax/gw-light.php";
 const API_URL: &str = "https://api.deezer.com/";
 const USER_AGENT_HEADER: &str = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.5790.111 Safari/537.36";
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Deezer {
     client: Client,
     token: Arc<Mutex<String>>,
